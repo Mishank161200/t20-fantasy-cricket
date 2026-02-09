@@ -185,3 +185,25 @@ export function getRandomizedPlayers(): Player[] {
 export function getPlayerById(playerId: string): Player | undefined {
   return WORLD_CUP_PLAYERS.find(p => p.id === playerId);
 }
+
+// Scale player base prices based on tournament budget
+// Default budget is 10,000,000, so prices scale proportionally
+export function getScaledPlayers(budget: number): Player[] {
+  const DEFAULT_BUDGET = 10000000;
+  const scaleFactor = budget / DEFAULT_BUDGET;
+
+  return WORLD_CUP_PLAYERS.map(player => ({
+    ...player,
+    basePrice: Math.round(player.basePrice * scaleFactor)
+  }));
+}
+
+export function getRandomizedScaledPlayers(budget: number): Player[] {
+  const scaledPlayers = getScaledPlayers(budget);
+  const shuffled = [...scaledPlayers];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}

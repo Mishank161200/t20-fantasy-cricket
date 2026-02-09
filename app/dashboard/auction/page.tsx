@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getRandomizedPlayers } from '@/lib/players';
+import { getRandomizedScaledPlayers } from '@/lib/players';
 import { formatCurrency, getPlayerRoleColor, downloadJSON } from '@/lib/utils';
 import { Gavel, Download, Users, DollarSign, CheckCircle } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -11,7 +11,9 @@ export default function AuctionPage() {
   const router = useRouter();
   const { currentTournament } = useAppStore();
 
-  const [players] = useState(getRandomizedPlayers());
+  const [players] = useState(() =>
+    currentTournament ? getRandomizedScaledPlayers(currentTournament.budget) : []
+  );
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [currentBid, setCurrentBid] = useState(0);
   const [currentBidder, setCurrentBidder] = useState('');
