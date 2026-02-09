@@ -30,29 +30,47 @@ export default function CreateTournamentPage() {
     }
   };
 
-  const handleStartAuction = () => {
-    // Save tournament data to store
-    const tournamentData = {
-      id: tournamentCode,
-      code: tournamentCode,
-      hostId: 'current-user-id',
-      name: tournamentName,
-      budget: budget,
-      status: 'auction' as const,
-      owners: owners.map((owner, idx) => ({
-        userId: `user-${idx}`,
-        email: owner.email,
-        name: owner.name,
-        teamName: owner.teamName,
+  const handleStartAuction = async () => {
+    if (!user) {
+      router.push('/auth?action=create');
+      return;
+    }
+
+    try {
+      // Create tournament data
+      const tournamentData = {
+        id: tournamentCode,
+        code: tournamentCode,
+        hostId: user.id,
+        name: tournamentName,
         budget: budget,
-        remainingBudget: budget,
-        players: [],
-        points: 0,
-      })),
-      createdAt: new Date(),
-    };
-    setCurrentTournament(tournamentData);
-    router.push('/dashboard/auction');
+        status: 'auction' as const,
+        owners: owners.map((owner, idx) => ({
+          userId: `user-${idx}`,
+          email: owner.email,
+          name: owner.name,
+          teamName: owner.teamName,
+          budget: budget,
+          remainingBudget: budget,
+          players: [],
+          points: 0,
+        })),
+        createdAt: new Date(),
+      };
+
+      // Save to Firebase
+      await saveTournament(tournamentData);
+      await addTournamentToUser(user.id, tournamentCode);
+
+      // Update local state
+      addTournament(tournamentData);
+
+      // Navigate to auction
+      router.push('/dashboard/auction');
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      alert('Failed to create tournament. Please try again.');
+    }
   };
 
   return (

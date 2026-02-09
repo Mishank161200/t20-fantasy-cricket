@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { saveUserProfile, getUserProfile, getUserTournaments } from '@/lib/firestore';
+import { useAppStore } from '@/lib/store';
 import { LogIn } from 'lucide-react';
 
 function AuthContent() {
@@ -11,6 +13,7 @@ function AuthContent() {
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
   const code = searchParams.get('code');
+  const { setUser, setUserTournaments } = useAppStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,19 +29,39 @@ function AuthContent() {
     setError('');
 
     try {
+      let userCredential;
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Save user profile to Firestore
+        await saveUserProfile(userCredential.user.uid, {
+          email,
+          name,
+          tournamentIds: [],
+        });
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
       }
+
+      // Load user profile and tournaments
+      const userProfile = await getUserProfile(userCredential.user.uid);
+      const tournaments = await getUserTournaments(userCredential.user.uid);
+
+      setUser({
+        id: userCredential.user.uid,
+        email: userCredential.user.email || email,
+        name: userProfile?.name || name || email.split('@')[0],
+      });
+      setUserTournaments(tournaments);
 
       // Redirect based on action
       if (action === 'create') {
         router.push('/tournament/create');
       } else if (action === 'join' && code) {
         router.push(`/tournament/join?code=${code}`);
+      } else if (tournaments.length > 0) {
+        router.push('/tournaments');
       } else {
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
