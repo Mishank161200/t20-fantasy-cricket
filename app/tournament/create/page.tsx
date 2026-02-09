@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Trophy, Users, DollarSign, Copy, Check } from 'lucide-react';
 import { generateTournamentCode, formatCurrency } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
+import { saveTournament, addTournamentToUser } from '@/lib/firestore';
 
 export default function CreateTournamentPage() {
   const router = useRouter();
-  const { setCurrentTournament } = useAppStore();
+  const { user, addTournament } = useAppStore();
   const [step, setStep] = useState(1);
   const [tournamentName, setTournamentName] = useState('');
   const [budget, setBudget] = useState(10000000);
