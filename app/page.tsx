@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trophy, Users, Calendar, Award } from 'lucide-react';
+import { Trophy, Users, Calendar, Award, LogIn } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -17,6 +17,10 @@ export default function HomePage() {
     if (tournamentCode.length === 6) {
       router.push(`/auth?action=join&code=${tournamentCode}`);
     }
+  };
+
+  const handleSignIn = () => {
+    router.push('/auth');
   };
 
   return (
@@ -70,6 +74,23 @@ export default function HomePage() {
         <div className="max-w-md mx-auto">
           {!action ? (
             <div className="space-y-4">
+              <button
+                onClick={handleSignIn}
+                className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+              >
+                <LogIn className="w-6 h-6" />
+                <span className="text-xl">Sign In</span>
+              </button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/30"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 text-white/80">
+                    or
+                  </span>
+                </div>
+              </div>
               <button
                 onClick={() => setAction('create')}
                 className="w-full bg-white hover:bg-gray-100 text-gray-900 font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg"
