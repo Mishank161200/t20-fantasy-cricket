@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trophy, Users, DollarSign, Copy, Check } from 'lucide-react';
 import { generateTournamentCode, formatCurrency } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 
 export default function CreateTournamentPage() {
   const router = useRouter();
+  const { setCurrentTournament } = useAppStore();
   const [step, setStep] = useState(1);
   const [tournamentName, setTournamentName] = useState('');
   const [budget, setBudget] = useState(10000000);
@@ -29,7 +31,27 @@ export default function CreateTournamentPage() {
   };
 
   const handleStartAuction = () => {
-    // Save tournament data to Firebase
+    // Save tournament data to store
+    const tournamentData = {
+      id: tournamentCode,
+      code: tournamentCode,
+      hostId: 'current-user-id',
+      name: tournamentName,
+      budget: budget,
+      status: 'auction' as const,
+      owners: owners.map((owner, idx) => ({
+        userId: `user-${idx}`,
+        email: owner.email,
+        name: owner.name,
+        teamName: owner.teamName,
+        budget: budget,
+        remainingBudget: budget,
+        players: [],
+        points: 0,
+      })),
+      createdAt: new Date(),
+    };
+    setCurrentTournament(tournamentData);
     router.push('/dashboard/auction');
   };
 
@@ -42,8 +64,8 @@ export default function CreateTournamentPage() {
             <div key={s} className="flex items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${s <= step
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-600'
                   }`}
               >
                 {s}

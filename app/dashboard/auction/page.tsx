@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { getRandomizedPlayers } from '@/lib/players';
 import { formatCurrency, getPlayerRoleColor, downloadJSON } from '@/lib/utils';
 import { Gavel, Download, Users, DollarSign, CheckCircle } from 'lucide-react';
+import { useAppStore } from '@/lib/store';
 
 export default function AuctionPage() {
+  const router = useRouter();
+  const { currentTournament } = useAppStore();
+
   const [players] = useState(getRandomizedPlayers());
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [currentBid, setCurrentBid] = useState(0);
@@ -13,15 +18,18 @@ export default function AuctionPage() {
   const [soldPlayers, setSoldPlayers] = useState<any[]>([]);
   const [auctionStatus, setAuctionStatus] = useState<'active' | 'paused' | 'ended'>('active');
 
+  // Redirect if no tournament data
+  useEffect(() => {
+    if (!currentTournament) {
+      router.push('/');
+    }
+  }, [currentTournament, router]);
+
   const currentPlayer = players[currentPlayerIndex];
   const remainingPlayers = players.length - currentPlayerIndex - soldPlayers.length;
 
-  // Mock team owners
-  const owners = [
-    { id: '1', name: 'You', teamName: 'Champions XI', budget: 10000000, remaining: 9200000 },
-    { id: '2', name: 'John', teamName: 'Thunder', budget: 10000000, remaining: 8800000 },
-    { id: '3', name: 'Jane', teamName: 'Royal', budget: 10000000, remaining: 9100000 },
-  ];
+  // Use actual tournament owners
+  const owners = currentTournament?.owners || [];
 
   const handleBid = (ownerId: string, amount: number) => {
     setCurrentBid(amount);
@@ -122,7 +130,7 @@ export default function AuctionPage() {
               <div className="bg-white/10 backdrop-blur rounded-lg p-4 mb-6">
                 <div className="text-white/70 text-sm mb-1">Leading Bidder</div>
                 <div className="text-xl font-bold">
-                  {owners.find(o => o.id === currentBidder)?.name} ({owners.find(o => o.id === currentBidder)?.teamName})
+                  {owners.find(o => o.userId === currentBidder)?.name} ({owners.find(o => o.userId === currentBidder)?.teamName})
                 </div>
               </div>
             )}
@@ -166,10 +174,10 @@ export default function AuctionPage() {
           <h3 className="text-xl font-bold text-gray-900 mb-4">Team Owners</h3>
           {owners.map((owner) => (
             <div
-              key={owner.id}
-              className={`bg-white rounded-xl shadow-sm p-6 border-2 transition-all ${currentBidder === owner.id
-                  ? 'border-blue-600 ring-2 ring-blue-600 ring-opacity-50'
-                  : 'border-gray-100'
+              key={owner.userId}
+              className={`bg-white rounded-xl shadow-sm p-6 border-2 transition-all ${currentBidder === owner.userId
+                ? 'border-blue-600 ring-2 ring-blue-600 ring-opacity-50'
+                : 'border-gray-100'
                 }`}
             >
               <div className="flex items-center justify-between mb-3">
@@ -177,7 +185,7 @@ export default function AuctionPage() {
                   <div className="font-bold text-gray-900">{owner.name}</div>
                   <div className="text-sm text-gray-600">{owner.teamName}</div>
                 </div>
-                {currentBidder === owner.id && (
+                {currentBidder === owner.userId && (
                   <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                     Leading
                   </div>
@@ -186,17 +194,17 @@ export default function AuctionPage() {
               <div className="mb-4">
                 <div className="text-xs text-gray-600 mb-1">Remaining Budget</div>
                 <div className="text-lg font-bold text-gray-900">
-                  {formatCurrency(owner.remaining)}
+                  {formatCurrency(owner.remainingBudget)}
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${(owner.remaining / owner.budget) * 100}%` }}
+                    style={{ width: `${(owner.remainingBudget / owner.budget) * 100}%` }}
                   />
                 </div>
               </div>
               <button
-                onClick={() => handleBid(owner.id, currentPlayer.basePrice + 50000)}
+                onClick={() => handleBid(owner.userId, currentPlayer.basePrice + 50000)}
                 className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
               >
                 Place Bid
@@ -224,7 +232,7 @@ export default function AuctionPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-gray-600">
-                    {owners.find(o => o.id === sale.buyer)?.name}
+                    {owners.find(o => o.userId === sale.buyer)?.name}
                   </div>
                   <div className="font-bold text-blue-600">{formatCurrency(sale.price)}</div>
                 </div>
