@@ -11,7 +11,8 @@ export default function TeamPage() {
   const [filterRole, setFilterRole] = useState<string>('All');
 
   // Mock owned players - in real app, fetch from Firebase
-  const ownedPlayers = WORLD_CUP_PLAYERS.slice(0, 18);
+  // Players should have between 15-20 total players in their squad
+  const ownedPlayers = WORLD_CUP_PLAYERS.slice(0, 20);
 
   const filteredPlayers = ownedPlayers.filter((player) => {
     const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -29,12 +30,21 @@ export default function TeamPage() {
   };
 
   const canSaveTeam = selectedPlayers.length === 12;
+  const totalSquadSize = ownedPlayers.length;
+  const isValidSquad = totalSquadSize >= 15 && totalSquadSize <= 20;
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">My Team</h1>
         <p className="text-gray-600">Select your playing 12 for the next match</p>
+        {!isValidSquad && (
+          <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-yellow-800 text-sm font-medium">
+              ⚠️ Your squad must have between 15-20 players total (currently: {totalSquadSize})
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Team Summary */}
@@ -145,10 +155,11 @@ export default function TeamPage() {
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-semibold text-blue-900 mb-2">Selection Rules</h3>
         <ul className="text-sm text-blue-800 space-y-1">
+          <li>• Your squad must have 15-20 players total</li>
           <li>• Select exactly 12 players for your playing team</li>
           <li>• You can change your team before each match</li>
           <li>• Make sure to save your team before the match starts</li>
-          <li>• Points will be calculated automatically based on Dream11 scoring system</li>
+          <li>• Points will be calculated automatically based on the scoring system</li>
         </ul>
       </div>
     </div>

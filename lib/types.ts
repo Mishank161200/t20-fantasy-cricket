@@ -58,13 +58,19 @@ export interface Match {
 export interface MatchPerformance {
   playerId: string;
   matchId: string;
+  inStartingLineup: boolean;
   runs: number;
   balls: number;
   fours: number;
   sixes: number;
+  isDismissedForDuck: boolean;
   wickets: number;
+  dotBalls: number;
+  bowledOrLbwWickets: number;
+  oversBowled: number;
   catches: number;
-  runOuts: number;
+  directRunOuts: number;
+  indirectRunOuts: number;
   stumpings: number;
   maidens: number;
   economyRate: number;
