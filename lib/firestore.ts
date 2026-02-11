@@ -35,6 +35,10 @@ export async function getTournament(tournamentId: string): Promise<Tournament | 
 
     if (tournamentSnap.exists()) {
       const data = tournamentSnap.data();
+      // Don't return tournaments that are marked as deleted
+      if (data.deleted) {
+        return null;
+      }
       return {
         ...data,
         createdAt: data.createdAt.toDate(),
@@ -61,10 +65,13 @@ export async function getUserTournaments(userId: string): Promise<Tournament[]> 
 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      tournaments.push({
-        ...data,
-        createdAt: data.createdAt.toDate(),
-      } as Tournament);
+      // Only include tournaments that are not marked as deleted
+      if (!data.deleted) {
+        tournaments.push({
+          ...data,
+          createdAt: data.createdAt.toDate(),
+        } as Tournament);
+      }
     });
 
     return tournaments;
