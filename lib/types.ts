@@ -15,6 +15,7 @@ export interface Tournament {
   owners: TournamentOwner[];
   createdAt: Date;
   auctionOrder?: string[]; // Player IDs in auction order
+  invitedEmails?: string[]; // Emails invited to auto-join
 }
 
 export interface TournamentOwner {

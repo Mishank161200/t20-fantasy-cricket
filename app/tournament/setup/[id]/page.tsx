@@ -122,11 +122,17 @@ export default function ManualSetupPage() {
       }
     }
 
+    // Collect invited emails (normalize to lowercase for consistency)
+    const invitedEmails = owners
+      .map(owner => owner.email.toLowerCase().trim())
+      .filter(email => email.length > 0);
+
     setSaving(true);
     try {
       await updateTournament(tournamentId, {
         owners,
         status: 'active',
+        invitedEmails,
       });
 
       const updatedTournament = await getTournament(tournamentId);
@@ -134,7 +140,7 @@ export default function ManualSetupPage() {
         setCurrentTournament(updatedTournament);
       }
 
-      alert('Tournament setup complete!');
+      alert('Tournament setup complete! Invited users can now login and will automatically join.');
       router.push('/dashboard');
     } catch (error) {
       console.error('Error saving tournament:', error);
@@ -177,6 +183,11 @@ export default function ManualSetupPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Manual Tournament Setup</h1>
         <p className="text-gray-600">Set up owners and assign players to their squads</p>
         <p className="text-sm text-gray-500 mt-2">Tournament: {tournament.name} | Budget: ₹{(tournament.budget / 10000000).toFixed(1)}Cr per team</p>
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            <strong>💡 Tip:</strong> Enter email addresses for owners, and they'll automatically join the tournament when they log in or sign up!
+          </p>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -200,7 +211,7 @@ export default function ManualSetupPage() {
                 />
                 <input
                   type="email"
-                  placeholder="Email (optional)"
+                  placeholder="Email (for auto-join)"
                   value={owner.email}
                   onChange={(e) => updateOwner(ownerIndex, 'email', e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"

@@ -169,3 +169,54 @@ export async function removeUserFromTournament(userId: string, tournamentId: str
     throw error;
   }
 }
+
+// Find tournaments where a user's email is invited
+export async function getTournamentsByInvitedEmail(email: string): Promise<Tournament[]> {
+  try {
+    const tournamentsRef = collection(db, 'tournaments');
+    const q = query(
+      tournamentsRef,
+      where('invitedEmails', 'array-contains', email.toLowerCase())
+    );
+
+    const querySnapshot = await getDocs(q);
+    const tournaments: Tournament[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      // Only include tournaments that are not marked as deleted
+      if (!data.deleted) {
+        tournaments.push({
+          ...data,
+          createdAt: data.createdAt.toDate(),
+        } as Tournament);
+      }
+    });
+
+    return tournaments;
+  } catch (error) {
+    console.error('Error getting tournaments by invited email:', error);
+    return [];
+  }
+}
+
+// Remove email from tournament's invited list (called after user joins)
+export async function removeInvitedEmail(tournamentId: string, email: string): Promise<void> {
+  try {
+    const tournamentRef = doc(db, 'tournaments', tournamentId);
+    const tournamentSnap = await getDoc(tournamentRef);
+
+    if (tournamentSnap.exists()) {
+      const data = tournamentSnap.data();
+      const invitedEmails = data.invitedEmails || [];
+      const updatedEmails = invitedEmails.filter((e: string) => e.toLowerCase() !== email.toLowerCase());
+
+      await updateDoc(tournamentRef, {
+        invitedEmails: updatedEmails
+      });
+    }
+  } catch (error) {
+    console.error('Error removing invited email:', error);
+    throw error;
+  }
+}

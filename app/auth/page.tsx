@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { saveUserProfile, getUserProfile, getUserTournaments } from '@/lib/firestore';
+import { saveUserProfile, getUserProfile, getUserTournaments, getTournamentsByInvitedEmail, removeInvitedEmail, addTournamentToUser } from '@/lib/firestore';
 import { useAppStore } from '@/lib/store';
 import { LogIn } from 'lucide-react';
 
@@ -48,6 +48,23 @@ function AuthContent() {
         email: userCredential.user.email || email,
         name: name || email.split('@')[0],
       });
+
+      // Check for invited tournaments and auto-join
+      const invitedTournaments = await getTournamentsByInvitedEmail(email);
+      if (invitedTournaments.length > 0) {
+        console.log(`Found ${invitedTournaments.length} tournament(s) with invitations for ${email}`);
+
+        // Add user to each invited tournament
+        for (const tournament of invitedTournaments) {
+          try {
+            await addTournamentToUser(userCredential.user.uid, tournament.id);
+            await removeInvitedEmail(tournament.id, email);
+            console.log(`Auto-joined tournament: ${tournament.name}`);
+          } catch (err) {
+            console.error(`Failed to auto-join tournament ${tournament.name}:`, err);
+          }
+        }
+      }
 
       // Load user profile and tournaments in background
       getUserProfile(userCredential.user.uid).then(userProfile => {
