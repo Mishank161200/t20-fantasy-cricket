@@ -1,6 +1,6 @@
 'use client';
 
-import { Trophy, TrendingUp, Star, Users } from 'lucide-react';
+import { Trophy, TrendingUp, Star, Users, Gavel, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
@@ -44,6 +44,28 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* Auction Alert Banner */}
+      {currentTournament.status === 'auction' && (
+        <div className="mb-6 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center space-x-4">
+            <div className="bg-white/20 p-3 rounded-full">
+              <Gavel className="w-8 h-8" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-1">Auction in Progress!</h3>
+              <p className="text-white/90 text-sm">The player auction is currently underway. Join now to bid on your favorite players!</p>
+            </div>
+            <button
+              onClick={() => router.push('/dashboard/auction')}
+              className="bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors flex items-center space-x-2 whitespace-nowrap"
+            >
+              <Gavel className="w-5 h-5" />
+              <span>Go to Auction</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">Welcome back! Here's your tournament overview.</p>
@@ -122,6 +144,15 @@ export default function DashboardPage() {
             <Star className="w-6 h-6 text-yellow-500" />
           </div>
           <div className="space-y-3">
+            {currentTournament.status === 'auction' && (
+              <Link
+                href="/dashboard/auction"
+                className="block w-full p-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold flex items-center justify-center space-x-2"
+              >
+                <Gavel className="w-5 h-5" />
+                <span>Join Auction</span>
+              </Link>
+            )}
             <Link
               href="/dashboard/team"
               className="block w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold"

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Home, Calendar, Trophy, Users, User, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { Home, Calendar, Trophy, Users, User, ChevronDown, Plus, Trash2, Gavel } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { deleteTournament as deleteTournamentFromFirestore, removeUserFromTournament } from '@/lib/firestore';
 import { useState } from 'react';
@@ -123,6 +123,15 @@ export default function DashboardLayout({
                 <Home className="w-5 h-5" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
+              {currentTournament?.status === 'auction' && (
+                <Link
+                  href="/dashboard/auction"
+                  className="flex items-center space-x-1 text-orange-600 hover:text-orange-700 transition-colors font-semibold"
+                >
+                  <Gavel className="w-5 h-5" />
+                  <span className="hidden sm:inline">Auction</span>
+                </Link>
+              )}
               <Link
                 href="/dashboard/schedule"
                 className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 transition-colors"
