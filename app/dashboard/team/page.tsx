@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { WORLD_CUP_PLAYERS, getPlayerById } from '@/lib/players';
-import { formatCurrency, getPlayerRoleColor } from '@/lib/utils';
-import { Users, Star, Shield, TrendingUp, Search } from 'lucide-react';
+import { WORLD_CUP_PLAYERS } from '@/lib/players';
+import { getPlayerRoleColor } from '@/lib/utils';
+import { Users, Search } from 'lucide-react';
 
 export default function TeamPage() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
-  const [captain, setCaptain] = useState<string>('');
-  const [viceCaptain, setViceCaptain] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('All');
 
@@ -25,27 +23,12 @@ export default function TeamPage() {
   const togglePlayerSelection = (playerId: string) => {
     if (selectedPlayers.includes(playerId)) {
       setSelectedPlayers(selectedPlayers.filter(id => id !== playerId));
-      if (captain === playerId) setCaptain('');
-      if (viceCaptain === playerId) setViceCaptain('');
     } else if (selectedPlayers.length < 12) {
       setSelectedPlayers([...selectedPlayers, playerId]);
     }
   };
 
-  const handleSetCaptain = (playerId: string) => {
-    if (selectedPlayers.includes(playerId)) {
-      setCaptain(playerId);
-      if (viceCaptain === playerId) setViceCaptain('');
-    }
-  };
-
-  const handleSetViceCaptain = (playerId: string) => {
-    if (selectedPlayers.includes(playerId) && captain !== playerId) {
-      setViceCaptain(playerId);
-    }
-  };
-
-  const canSaveTeam = selectedPlayers.length === 12 && captain && viceCaptain;
+  const canSaveTeam = selectedPlayers.length === 12;
 
   return (
     <div>
@@ -55,7 +38,7 @@ export default function TeamPage() {
       </div>
 
       {/* Team Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Selected</span>
@@ -63,26 +46,6 @@ export default function TeamPage() {
           </div>
           <div className="text-3xl font-bold text-gray-900">
             {selectedPlayers.length}/12
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600 text-sm font-medium">Captain</span>
-            <Star className="w-5 h-5 text-yellow-500" />
-          </div>
-          <div className="text-lg font-bold text-gray-900 truncate">
-            {captain ? getPlayerById(captain)?.name : 'Not set'}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600 text-sm font-medium">Vice Captain</span>
-            <Shield className="w-5 h-5 text-purple-600" />
-          </div>
-          <div className="text-lg font-bold text-gray-900 truncate">
-            {viceCaptain ? getPlayerById(viceCaptain)?.name : 'Not set'}
           </div>
         </div>
 
@@ -119,8 +82,8 @@ export default function TeamPage() {
                 key={role}
                 onClick={() => setFilterRole(role)}
                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${filterRole === role
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {role}
@@ -139,14 +102,11 @@ export default function TeamPage() {
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Player</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Role</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Country</th>
-                <th className="text-center py-4 px-6 font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredPlayers.map((player) => {
                 const isSelected = selectedPlayers.includes(player.id);
-                const isCaptain = captain === player.id;
-                const isViceCaptain = viceCaptain === player.id;
 
                 return (
                   <tr
@@ -164,16 +124,6 @@ export default function TeamPage() {
                         />
                         <div>
                           <div className="font-semibold text-gray-900">{player.name}</div>
-                          {isCaptain && (
-                            <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded">
-                              Captain (2x)
-                            </span>
-                          )}
-                          {isViceCaptain && (
-                            <span className="text-xs bg-purple-500 text-white px-2 py-1 rounded">
-                              Vice Captain (1.5x)
-                            </span>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -183,24 +133,6 @@ export default function TeamPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-gray-600">{player.country}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => handleSetCaptain(player.id)}
-                          disabled={!isSelected}
-                          className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-semibold hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Set C
-                        </button>
-                        <button
-                          onClick={() => handleSetViceCaptain(player.id)}
-                          disabled={!isSelected || isCaptain}
-                          className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Set VC
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                 );
               })}
@@ -214,10 +146,9 @@ export default function TeamPage() {
         <h3 className="font-semibold text-blue-900 mb-2">Selection Rules</h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Select exactly 12 players for your playing team</li>
-          <li>• Choose 1 Captain (points will be doubled: 2x)</li>
-          <li>• Choose 1 Vice Captain (points will be 1.5x)</li>
           <li>• You can change your team before each match</li>
           <li>• Make sure to save your team before the match starts</li>
+          <li>• Points will be calculated automatically based on Dream11 scoring system</li>
         </ul>
       </div>
     </div>

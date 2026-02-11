@@ -53,8 +53,6 @@ This is a **complete, production-ready fantasy cricket application** for the ICC
 
 ### 7. **Team Management** (`app/dashboard/team/page.tsx`)
 - Select playing 12 from owned players
-- Captain selection (2x points)
-- Vice Captain selection (1.5x points)
 - Player search and filtering by role
 - Visual role badges with colors
 - Team validation before saving

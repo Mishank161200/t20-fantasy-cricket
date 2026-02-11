@@ -76,8 +76,6 @@ export interface TeamSelection {
   ownerId: string;
   matchId: string;
   playerIds: string[]; // 12 players
-  captain: string;
-  viceCaptain: string;
 }
 
 export interface ScoringRule {

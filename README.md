@@ -6,7 +6,7 @@ A minimalistic fantasy cricket application for ICC T20 World Cup 2026, built wit
 
 - **Tournament Creation & Management**: Host can create tournaments with customizable budgets
 - **Player Auction System**: Random order auction with up to 20 team owners
-- **Team Selection**: Select playing 12 with captain and vice-captain before each match
+- **Team Selection**: Select playing 12 before each match
 - **Live Scoring**: Dream11-style points calculation based on actual match performances
 - **Match Schedule**: Complete T20 World Cup 2026 schedule with dates and venues (IST)
 - **Leaderboard**: Real-time rankings and points tracking
@@ -137,7 +137,6 @@ cricket-fantasy-app/
 
 3. **Manage Your Team**:
    - Select your playing 12 before each match
-   - Choose captain (2x points) and vice-captain (1.5x points)
    - Save your team before match starts
 
 4. **Track Progress**:
