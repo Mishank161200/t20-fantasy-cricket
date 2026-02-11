@@ -33,7 +33,7 @@ export default function LeaderboardPage() {
       teamName: owner.teamName,
       points: owner.points,
       change: 0, // Can be calculated from historical data
-      trend: 'same' as const,
+      trend: 'same' as 'up' | 'down' | 'same',
     }))
     .sort((a, b) => b.points - a.points)
     .map((owner, index) => ({ ...owner, rank: index + 1 })) || [];
@@ -102,8 +102,9 @@ export default function LeaderboardPage() {
                 </div>
               </div>
             </div>
+          )}
 
-      {/* Full Leaderboard */}
+          {/* Full Leaderboard */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -177,6 +178,8 @@ export default function LeaderboardPage() {
               </div>
             </div>
           </div>
-        </div>
-      );
+        </>
+      )}
+    </div>
+  );
 }

@@ -13,7 +13,7 @@ export default function DashboardPage() {
   const userOwner = currentTournament?.owners?.find(o => o.userId === user?.id);
   const userStats = {
     totalPoints: userOwner?.points || 0,
-    rank: currentTournament?.owners?.sort((a, b) => b.points - a.points).findIndex(o => o.userId === user?.id) + 1 || 0,
+    rank: (currentTournament?.owners ? currentTournament.owners.sort((a, b) => b.points - a.points).findIndex(o => o.userId === user?.id) + 1 : 0) || 0,
     teamName: userOwner?.teamName || 'My Team',
     totalPlayers: userOwner?.players?.length || 0,
   };
@@ -143,70 +143,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-            <h2 className="text-xl font-bold text-gray-900">Recent Matches</h2>
-            <Link
-              href="/dashboard/schedule"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              View All
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {recentMatches.map((match) => (
-              <div
-                key={match.id}
-                className="p-4 bg-gray-50 rounded-lg"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-semibold text-gray-900">
-                    {match.team1} vs {match.team2}
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${match.status === 'live'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700'
-                      }`}
-                  >
-                    {match.status === 'live' ? 'LIVE' : 'Completed'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">Your Points</div>
-                  <div className="text-lg font-bold text-blue-600">{match.yourPoints}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div >
-      </div >
-
-    {/* Quick Actions */ }
-    < div className = "mt-8 grid grid-cols-1 md:grid-cols-3 gap-4" >
-        <Link
-          href="/dashboard/team"
-          className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white text-center hover:opacity-90 transition-opacity"
-        >
-          <Users className="w-8 h-8 mx-auto mb-2" />
-          <div className="font-semibold">Manage Team</div>
-          <div className="text-sm opacity-90">Select your playing 12</div>
-        </Link>
-        <Link
-          href="/dashboard/schedule"
-          className="p-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl text-white text-center hover:opacity-90 transition-opacity"
-        >
-          <Trophy className="w-8 h-8 mx-auto mb-2" />
-          <div className="font-semibold">View Schedule</div>
-          <div className="text-sm opacity-90">Upcoming matches</div>
-        </Link>
-        <Link
-          href="/dashboard/leaderboard"
-          className="p-6 bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl text-white text-center hover:opacity-90 transition-opacity"
-        >
-          <TrendingUp className="w-8 h-8 mx-auto mb-2" />
-          <div className="font-semibold">Leaderboard</div>
-          <div className="text-sm opacity-90">Check rankings</div>
-        </Link>
-      </div >
-    </div >
+    </div>
   );
 }

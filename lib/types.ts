@@ -30,7 +30,7 @@ export interface TournamentOwner {
 
 export interface PlayerPurchase {
   playerId: string;
-  purchasePrice: number;
+  price: number;
   purchasedAt: Date;
 }
 

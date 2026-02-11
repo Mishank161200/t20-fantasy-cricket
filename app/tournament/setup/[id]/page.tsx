@@ -189,21 +189,21 @@ export default function ManualSetupPage() {
                   placeholder="Owner Name"
                   value={owner.name}
                   onChange={(e) => updateOwner(ownerIndex, 'name', e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
                 <input
                   type="text"
                   placeholder="Team Name"
                   value={owner.teamName}
                   onChange={(e) => updateOwner(ownerIndex, 'teamName', e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
                 <input
                   type="email"
                   placeholder="Email (optional)"
                   value={owner.email}
                   onChange={(e) => updateOwner(ownerIndex, 'email', e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
               </div>
               <button
@@ -227,7 +227,7 @@ export default function ManualSetupPage() {
                     e.target.value = '';
                   }
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
               >
                 <option value="">Add Player...</option>
                 {WORLD_CUP_PLAYERS.map((player) => (

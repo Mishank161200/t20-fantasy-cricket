@@ -139,7 +139,7 @@ export default function HomePage() {
                 onChange={(e) => setTournamentCode(e.target.value.toUpperCase())}
                 placeholder="Enter code (e.g., ABC123)"
                 maxLength={6}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4 text-center text-2xl font-bold tracking-widest focus:border-blue-500 focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4 text-center text-2xl font-bold tracking-widest focus:border-blue-500 focus:outline-none text-gray-900"
               />
               <button
                 onClick={handleJoinTournament}
