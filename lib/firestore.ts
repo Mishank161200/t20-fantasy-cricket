@@ -109,9 +109,11 @@ export async function getUserProfile(userId: string): Promise<any> {
 export async function addTournamentToUser(userId: string, tournamentId: string): Promise<void> {
   try {
     const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
+
+    // Use setDoc with merge to create document if it doesn't exist
+    await setDoc(userRef, {
       tournamentIds: arrayUnion(tournamentId)
-    });
+    }, { merge: true });
   } catch (error) {
     console.error('Error adding tournament to user:', error);
     throw error;

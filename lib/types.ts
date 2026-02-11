@@ -10,6 +10,7 @@ export interface Tournament {
   hostId: string;
   name: string;
   budget: number;
+  maxOwners: number;
   status: 'setup' | 'auction' | 'active' | 'completed';
   owners: TournamentOwner[];
   createdAt: Date;
