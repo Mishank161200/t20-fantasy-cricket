@@ -74,6 +74,92 @@ export default function CreateTournamentPage() {
     }
   };
 
+  const handleManualSetup = async () => {
+    if (!user) {
+      router.push('/auth?action=create');
+      return;
+    }
+
+    try {
+      // Create tournament data with 'active' status
+      const tournamentData = {
+        id: tournamentCode,
+        code: tournamentCode,
+        hostId: user.id,
+        name: tournamentName,
+        budget: budget,
+        status: 'active' as const,
+        owners: owners.map((owner, idx) => ({
+          userId: `user-${idx}`,
+          email: owner.email,
+          name: owner.name,
+          teamName: owner.teamName,
+          budget: budget,
+          remainingBudget: budget,
+          players: [],
+          points: 0,
+        })),
+        createdAt: new Date(),
+      };
+
+      // Save to Firebase
+      await saveTournament(tournamentData);
+      await addTournamentToUser(user.id, tournamentCode);
+
+      // Update local state
+      addTournament(tournamentData);
+
+      // Navigate to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      alert('Failed to create tournament. Please try again.');
+    }
+  };
+
+  const handleManualSetup = async () => {
+    if (!user) {
+      router.push('/auth?action=create');
+      return;
+    }
+
+    try {
+      // Create tournament data with 'active' status
+      const tournamentData = {
+        id: tournamentCode,
+        code: tournamentCode,
+        hostId: user.id,
+        name: tournamentName,
+        budget: budget,
+        status: 'active' as const,
+        owners: owners.map((owner, idx) => ({
+          userId: `user-${idx}`,
+          email: owner.email,
+          name: owner.name,
+          teamName: owner.teamName,
+          budget: budget,
+          remainingBudget: budget,
+          players: [],
+          points: 0,
+        })),
+        createdAt: new Date(),
+      };
+
+      // Save to Firebase
+      await saveTournament(tournamentData);
+      await addTournamentToUser(user.id, tournamentCode);
+
+      // Update local state
+      addTournament(tournamentData);
+
+      // Navigate to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      alert('Failed to create tournament. Please try again.');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Progress Steps */}
@@ -302,6 +388,12 @@ export default function CreateTournamentPage() {
                 className="flex-1 bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Back
+              </button>
+              <button
+                onClick={handleManualSetup}
+                className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Manual Setup
               </button>
               <button
                 onClick={handleStartAuction}

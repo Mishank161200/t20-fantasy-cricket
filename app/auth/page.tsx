@@ -42,26 +42,35 @@ function AuthContent() {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       }
 
-      // Load user profile and tournaments
-      const userProfile = await getUserProfile(userCredential.user.uid);
-      const tournaments = await getUserTournaments(userCredential.user.uid);
-
+      // Set user in store immediately
       setUser({
         id: userCredential.user.uid,
         email: userCredential.user.email || email,
-        name: userProfile?.name || name || email.split('@')[0],
+        name: name || email.split('@')[0],
       });
-      setUserTournaments(tournaments);
+
+      // Load user profile and tournaments in background
+      getUserProfile(userCredential.user.uid).then(userProfile => {
+        if (userProfile?.name) {
+          setUser({
+            id: userCredential.user.uid,
+            email: userCredential.user.email || email,
+            name: userProfile.name,
+          });
+        }
+      }).catch(err => console.error('Error loading profile:', err));
+
+      getUserTournaments(userCredential.user.uid).then(tournaments => {
+        setUserTournaments(tournaments);
+      }).catch(err => console.error('Error loading tournaments:', err));
 
       // Redirect based on action
       if (action === 'create') {
         router.push('/tournament/create');
       } else if (action === 'join' && code) {
         router.push(`/tournament/join?code=${code}`);
-      } else if (tournaments.length > 0) {
-        router.push('/tournaments');
       } else {
-        router.push('/');
+        router.push('/tournaments');
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');

@@ -53,7 +53,7 @@ export async function getUserTournaments(userId: string): Promise<Tournament[]> 
     const tournamentsRef = collection(db, 'tournaments');
     const q = query(
       tournamentsRef,
-      where('owners', 'array-contains', { userId })
+      where('hostId', '==', userId)
     );
 
     const querySnapshot = await getDocs(q);
