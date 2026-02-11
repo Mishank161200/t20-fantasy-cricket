@@ -10,6 +10,7 @@ interface AppState {
   setCurrentTournament: (tournament: Tournament | null) => void;
   setUserTournaments: (tournaments: Tournament[]) => void;
   addTournament: (tournament: Tournament) => void;
+  removeTournament: (tournamentId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -25,6 +26,11 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           userTournaments: [...state.userTournaments, tournament],
           currentTournament: tournament
+        })),
+      removeTournament: (tournamentId) =>
+        set((state) => ({
+          userTournaments: state.userTournaments.filter(t => t.id !== tournamentId),
+          currentTournament: state.currentTournament?.id === tournamentId ? null : state.currentTournament
         })),
     }),
     {

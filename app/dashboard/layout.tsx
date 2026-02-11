@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Home, Calendar, Trophy, Users, User, ChevronDown, Plus } from 'lucide-react';
+import { Home, Calendar, Trophy, Users, User, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { deleteTournament as deleteTournamentFromFirestore, removeUserFromTournament } from '@/lib/firestore';
 import { useState } from 'react';
 
 export default function DashboardLayout({
@@ -12,12 +13,41 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { currentTournament, userTournaments, setCurrentTournament } = useAppStore();
+  const { currentTournament, userTournaments, setCurrentTournament, removeTournament, user } = useAppStore();
   const [showTournamentDropdown, setShowTournamentDropdown] = useState(false);
 
   const handleTournamentSwitch = (tournament: any) => {
     setCurrentTournament(tournament);
     setShowTournamentDropdown(false);
+  };
+
+  const handleDeleteTournament = async (tournamentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this tournament? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteTournamentFromFirestore(tournamentId);
+      if (user) {
+        await removeUserFromTournament(user.id, tournamentId);
+      }
+      removeTournament(tournamentId);
+
+      if (currentTournament?.id === tournamentId) {
+        const remainingTournaments = userTournaments.filter(t => t.id !== tournamentId);
+        if (remainingTournaments.length > 0) {
+          setCurrentTournament(remainingTournaments[0]);
+        } else {
+          setCurrentTournament(null);
+          router.push('/tournaments');
+        }
+      }
+      setShowTournamentDropdown(false);
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      alert('Failed to delete tournament. Please try again.');
+    }
   };
 
   return (
@@ -60,15 +90,23 @@ export default function DashboardLayout({
                         </button>
                         <div className="border-t my-2"></div>
                         {userTournaments.map((tournament) => (
-                          <button
-                            key={tournament.id}
-                            onClick={() => handleTournamentSwitch(tournament)}
-                            className={`w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 ${currentTournament.id === tournament.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                              }`}
-                          >
-                            <div className="font-medium">{tournament.name}</div>
-                            <div className="text-xs text-gray-500">{tournament.code}</div>
-                          </button>
+                          <div key={tournament.id} className="flex items-center group">
+                            <button
+                              onClick={() => handleTournamentSwitch(tournament)}
+                              className={`flex-1 text-left px-4 py-2 rounded-lg hover:bg-gray-50 ${currentTournament?.id === tournament.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                                }`}
+                            >
+                              <div className="font-medium">{tournament.name}</div>
+                              <div className="text-xs text-gray-500">{tournament.code}</div>
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteTournament(tournament.id, e)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete tournament"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>

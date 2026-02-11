@@ -4,15 +4,36 @@ import { useState } from 'react';
 import { WORLD_CUP_PLAYERS } from '@/lib/players';
 import { getPlayerRoleColor } from '@/lib/utils';
 import { Users, Search } from 'lucide-react';
+import { useAppStore } from '@/lib/store';
+import { useRouter } from 'next/navigation';
 
 export default function TeamPage() {
+  const router = useRouter();
+  const { currentTournament, user } = useAppStore();
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('All');
 
-  // Mock owned players - in real app, fetch from Firebase
-  // Players should have between 15-20 total players in their squad
-  const ownedPlayers = WORLD_CUP_PLAYERS.slice(0, 20);
+  if (!currentTournament) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Users className="w-16 h-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Tournament Selected</h2>
+        <p className="text-gray-600 mb-6">Select a tournament to manage your team</p>
+        <button
+          onClick={() => router.push('/tournaments')}
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+        >
+          View Tournaments
+        </button>
+      </div>
+    );
+  }
+
+  // Get owned players from current tournament
+  const userOwner = currentTournament.owners?.find(o => o.userId === user?.id);
+  const ownedPlayerIds = userOwner?.players?.map(p => p.playerId) || [];
+  const ownedPlayers = WORLD_CUP_PLAYERS.filter(player => ownedPlayerIds.includes(player.id));
 
   const filteredPlayers = ownedPlayers.filter((player) => {
     const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

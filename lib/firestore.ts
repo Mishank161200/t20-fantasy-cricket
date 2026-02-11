@@ -130,3 +130,35 @@ export async function updateTournament(tournamentId: string, updates: Partial<To
     throw error;
   }
 }
+
+// Delete tournament
+export async function deleteTournament(tournamentId: string): Promise<void> {
+  try {
+    const tournamentRef = doc(db, 'tournaments', tournamentId);
+    await updateDoc(tournamentRef, { deleted: true });
+  } catch (error) {
+    console.error('Error deleting tournament:', error);
+    throw error;
+  }
+}
+
+// Remove tournament from user's list
+export async function removeUserFromTournament(userId: string, tournamentId: string): Promise<void> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      const tournamentIds = userData.tournamentIds || [];
+      const updatedIds = tournamentIds.filter((id: string) => id !== tournamentId);
+
+      await updateDoc(userRef, {
+        tournamentIds: updatedIds
+      });
+    }
+  } catch (error) {
+    console.error('Error removing tournament from user:', error);
+    throw error;
+  }
+}

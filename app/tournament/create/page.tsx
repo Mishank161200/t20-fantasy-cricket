@@ -53,7 +53,7 @@ export default function CreateTournamentPage() {
       if (status === 'auction') {
         router.push('/dashboard/auction');
       } else {
-        router.push('/dashboard');
+        router.push(`/tournament/setup/${tournamentCode}`);
       }
     } catch (error) {
       console.error('Error creating tournament:', error);

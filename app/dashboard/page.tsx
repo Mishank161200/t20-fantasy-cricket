@@ -2,27 +2,45 @@
 
 import { Trophy, TrendingUp, Star, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useAppStore } from '@/lib/store';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
-  // Mock data - will be replaced with real data from Firebase
+  const router = useRouter();
+  const { currentTournament, user } = useAppStore();
+
+  // Get user's data from current tournament
+  const userOwner = currentTournament?.owners?.find(o => o.userId === user?.id);
   const userStats = {
-    totalPoints: 450,
-    rank: 3,
-    teamName: 'Champions XI',
-    nextMatch: 'India vs Pakistan - Today, 7:30 PM IST',
+    totalPoints: userOwner?.points || 0,
+    rank: currentTournament?.owners?.sort((a, b) => b.points - a.points).findIndex(o => o.userId === user?.id) + 1 || 0,
+    teamName: userOwner?.teamName || 'My Team',
+    totalPlayers: userOwner?.players?.length || 0,
   };
 
-  const topPlayers = [
-    { name: 'Virat Kohli', points: 85, match: 'IND vs PAK' },
-    { name: 'Jasprit Bumrah', points: 72, match: 'IND vs AUS' },
-    { name: 'Jos Buttler', points: 68, match: 'ENG vs SA' },
-  ];
-
-  const recentMatches = [
-    { id: 1, team1: 'India', team2: 'Pakistan', status: 'completed', yourPoints: 120 },
-    { id: 2, team1: 'Australia', team2: 'England', status: 'completed', yourPoints: 95 },
-    { id: 3, team1: 'South Africa', team2: 'West Indies', status: 'live', yourPoints: 45 },
-  ];
+  if (!currentTournament) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Trophy className="w-16 h-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Tournament Selected</h2>
+        <p className="text-gray-600 mb-6">Create or join a tournament to get started</p>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => router.push('/tournament/create')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Create Tournament
+          </button>
+          <button
+            onClick={() => router.push('/tournament/join')}
+            className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+          >
+            Join Tournament
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -46,7 +64,7 @@ export default function DashboardPage() {
             <span className="text-gray-600 text-sm font-medium">Your Rank</span>
             <Trophy className="w-5 h-5 text-yellow-500" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">#{userStats.rank}</div>
+          <div className="text-3xl font-bold text-gray-900">#{userStats.rank || '-'}</div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
@@ -58,46 +76,73 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-sm p-6 text-white">
-          <div className="text-sm font-medium mb-2">Next Match</div>
-          <div className="text-sm font-semibold">{userStats.nextMatch}</div>
+          <div className="text-sm font-medium mb-2">Your Squad</div>
+          <div className="text-3xl font-bold mb-2">{userStats.totalPlayers}</div>
+          <div className="text-xs text-white/80">players owned</div>
           <Link
             href="/dashboard/team"
             className="mt-3 inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
           >
-            Select Team
+            Manage Team
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Top Performing Players */}
+        {/* Tournament Info */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Your Top Players</h2>
-            <Star className="w-6 h-6 text-yellow-500" />
+            <h2 className="text-xl font-bold text-gray-900">Tournament Details</h2>
+            <Trophy className="w-6 h-6 text-blue-600" />
           </div>
           <div className="space-y-4">
-            {topPlayers.map((player, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-              >
-                <div>
-                  <div className="font-semibold text-gray-900">{player.name}</div>
-                  <div className="text-sm text-gray-600">{player.match}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-blue-600">{player.points}</div>
-                  <div className="text-xs text-gray-600">points</div>
-                </div>
-              </div>
-            ))}
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Tournament Name</span>
+              <span className="font-semibold text-gray-900">{currentTournament.name}</span>
+            </div>
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Budget</span>
+              <span className="font-semibold text-gray-900">₹{(currentTournament.budget / 10000000).toFixed(1)}Cr</span>
+            </div>
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Total Owners</span>
+              <span className="font-semibold text-gray-900">{currentTournament.owners?.length || 0}/{currentTournament.maxOwners}</span>
+            </div>
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <span className="text-gray-600">Status</span>
+              <span className="font-semibold text-blue-600 capitalize">{currentTournament.status}</span>
+            </div>
           </div>
         </div>
 
-        {/* Recent Matches */}
+        {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
+            <Star className="w-6 h-6 text-yellow-500" />
+          </div>
+          <div className="space-y-3">
+            <Link
+              href="/dashboard/team"
+              className="block w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold"
+            >
+              Manage Your Team
+            </Link>
+            <Link
+              href="/dashboard/schedule"
+              className="block w-full p-4 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold"
+            >
+              View Match Schedule
+            </Link>
+            <Link
+              href="/dashboard/leaderboard"
+              className="block w-full p-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold"
+            >
+              Check Leaderboard
+            </Link>
+          </div>
+        </div>
+      </div>
             <h2 className="text-xl font-bold text-gray-900">Recent Matches</h2>
             <Link
               href="/dashboard/schedule"
@@ -118,8 +163,8 @@ export default function DashboardPage() {
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${match.status === 'live'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-green-100 text-green-700'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-green-100 text-green-700'
                       }`}
                   >
                     {match.status === 'live' ? 'LIVE' : 'Completed'}
@@ -132,11 +177,11 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
 
-      {/* Quick Actions */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+    {/* Quick Actions */ }
+    < div className = "mt-8 grid grid-cols-1 md:grid-cols-3 gap-4" >
         <Link
           href="/dashboard/team"
           className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white text-center hover:opacity-90 transition-opacity"
@@ -161,7 +206,7 @@ export default function DashboardPage() {
           <div className="font-semibold">Leaderboard</div>
           <div className="text-sm opacity-90">Check rankings</div>
         </Link>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
