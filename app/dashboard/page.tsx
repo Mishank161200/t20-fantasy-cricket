@@ -153,7 +153,7 @@ export default function DashboardPage() {
                 <span>Join Auction</span>
               </Link>
             )}
-            {currentTournament.createdBy === user?.id && (
+            {currentTournament.hostId === user?.id && (
               <Link
                 href={`/tournament/setup/${currentTournament.id}`}
                 className="block w-full p-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold flex items-center justify-center space-x-2"
