@@ -182,7 +182,7 @@ export default function ManualSetupPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Manual Tournament Setup</h1>
         <p className="text-gray-600">Set up owners and assign players to their squads</p>
-        <p className="text-sm text-gray-500 mt-2">Tournament: {tournament.name} | Budget: ₹{(tournament.budget / 10000000).toFixed(1)}Cr per team</p>
+        <p className="text-sm text-gray-500 mt-2">Tournament: {tournament.name} | Budget: ₹{tournament.budget.toLocaleString()} per team</p>
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
             <strong>💡 Tip:</strong> Enter email addresses for owners, and they'll automatically join the tournament when they log in or sign up!
@@ -228,7 +228,7 @@ export default function ManualSetupPage() {
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 Players: {owner.players.length}/20 (min 15) |
-                Remaining Budget: <span className="font-semibold text-blue-600">₹{(owner.remainingBudget / 10000000).toFixed(2)}Cr</span>
+                Remaining Budget: <span className="font-semibold text-blue-600">₹{owner.remainingBudget.toLocaleString()}</span>
               </div>
               <select
                 onChange={(e) => {
@@ -243,7 +243,7 @@ export default function ManualSetupPage() {
                 <option value="">Add Player...</option>
                 {WORLD_CUP_PLAYERS.map((player) => (
                   <option key={player.id} value={`${player.id}|${player.basePrice}`}>
-                    {player.name} - {player.role} - ₹{(player.basePrice / 10000000).toFixed(2)}Cr
+                    {player.name} - {player.role} - ₹{player.basePrice.toLocaleString()}
                   </option>
                 ))}
               </select>
@@ -258,7 +258,7 @@ export default function ManualSetupPage() {
                       <div className="flex items-center space-x-3">
                         <span className="font-medium text-gray-900">{player?.name || 'Unknown'}</span>
                         <span className="text-sm text-gray-500">{player?.role}</span>
-                        <span className="text-sm font-semibold text-blue-600">₹{(playerPurchase.price / 10000000).toFixed(2)}Cr</span>
+                        <span className="text-sm font-semibold text-blue-600">₹{playerPurchase.price.toLocaleString()}</span>
                       </div>
                       <button
                         onClick={() => removePlayerFromOwner(ownerIndex, playerIndex)}
