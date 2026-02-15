@@ -153,6 +153,15 @@ export default function DashboardPage() {
                 <span>Join Auction</span>
               </Link>
             )}
+            {currentTournament.createdBy === user?.id && (
+              <Link
+                href={`/tournament/setup/${currentTournament.id}`}
+                className="block w-full p-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold flex items-center justify-center space-x-2"
+              >
+                <Users className="w-5 h-5" />
+                <span>Manual Setup</span>
+              </Link>
+            )}
             <Link
               href="/dashboard/team"
               className="block w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-center font-semibold"
