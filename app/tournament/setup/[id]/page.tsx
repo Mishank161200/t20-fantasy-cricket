@@ -105,6 +105,14 @@ export default function ManualSetupPage() {
     setOwners(updated);
   };
 
+  // Calculate scaled price based on tournament budget
+  // Standard budget is 10,000,000 (10 Cr)
+  const getScaledPrice = (basePrice: number): number => {
+    const standardBudget = 10000000;
+    const scaleFactor = (tournament?.budget || standardBudget) / standardBudget;
+    return Math.round(basePrice * scaleFactor);
+  };
+
   const handleSave = async () => {
     // Validate
     for (const owner of owners) {
@@ -232,20 +240,24 @@ export default function ManualSetupPage() {
               </div>
               <select
                 onChange={(e) => {
-                  const [playerId, price] = e.target.value.split('|');
-                  if (playerId && price) {
-                    addPlayerToOwner(ownerIndex, playerId, parseInt(price));
+                  const [playerId, basePrice] = e.target.value.split('|');
+                  if (playerId && basePrice) {
+                    const scaledPrice = getScaledPrice(parseInt(basePrice));
+                    addPlayerToOwner(ownerIndex, playerId, scaledPrice);
                     e.target.value = '';
                   }
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
               >
                 <option value="">Add Player...</option>
-                {WORLD_CUP_PLAYERS.map((player) => (
-                  <option key={player.id} value={`${player.id}|${player.basePrice}`}>
-                    {player.name} - {player.role} - ₹{player.basePrice.toLocaleString()}
-                  </option>
-                ))}
+                {WORLD_CUP_PLAYERS.map((player) => {
+                  const scaledPrice = getScaledPrice(player.basePrice);
+                  return (
+                    <option key={player.id} value={`${player.id}|${player.basePrice}`}>
+                      {player.name} - {player.role} - ₹{scaledPrice.toLocaleString()}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
