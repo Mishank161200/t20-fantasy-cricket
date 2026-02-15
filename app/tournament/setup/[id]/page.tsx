@@ -120,10 +120,7 @@ export default function ManualSetupPage() {
       setOwners(updated);
       setShowPriceModal(false);
       setSelectedPlayer(null);
-      setCustomPrice(''
-    owner.remainingBudget -= price;
-
-      setOwners(updated);
+      setCustomPrice('');
     };
 
     const removePlayerFromOwner = (ownerIndex: number, playerIndex: number) => {
