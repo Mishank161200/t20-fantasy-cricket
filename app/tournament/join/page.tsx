@@ -152,7 +152,7 @@ function JoinTournamentContent() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-blue-700">Budget:</span>
-                  <span className="font-semibold">₹{(tournament.budget / 10000000).toFixed(1)}Cr</span>
+                  <span className="font-semibold">₹{tournament.budget.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">Current Owners:</span>

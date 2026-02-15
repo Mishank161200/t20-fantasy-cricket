@@ -98,9 +98,9 @@ export default function TournamentsPage() {
                   <p className="text-sm text-gray-600">Code: {tournament.code}</p>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm font-semibold ${tournament.status === 'auction' ? 'bg-orange-100 text-orange-700' :
-                    tournament.status === 'active' ? 'bg-green-100 text-green-700' :
-                      tournament.status === 'completed' ? 'bg-gray-100 text-gray-700' :
-                        'bg-blue-100 text-blue-700'
+                  tournament.status === 'active' ? 'bg-green-100 text-green-700' :
+                    tournament.status === 'completed' ? 'bg-gray-100 text-gray-700' :
+                      'bg-blue-100 text-blue-700'
                   }`}>
                   {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
                 </div>
@@ -113,7 +113,7 @@ export default function TournamentsPage() {
                 </div>
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Trophy className="w-4 h-4" />
-                  <span>₹{(tournament.budget / 10000000).toFixed(1)}Cr</span>
+                  <span>₹{tournament.budget.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Calendar className="w-4 h-4" />

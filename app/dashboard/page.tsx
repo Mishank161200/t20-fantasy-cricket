@@ -124,7 +124,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Budget</span>
-              <span className="font-semibold text-gray-900">₹{(currentTournament.budget / 10000000).toFixed(1)}Cr</span>
+              <span className="font-semibold text-gray-900">₹{currentTournament.budget.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Total Owners</span>
