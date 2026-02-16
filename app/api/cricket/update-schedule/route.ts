@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+// Force Node.js runtime for Vercel compatibility
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // This route updates match schedules and processes completed matches automatically
 // Designed to be called by Vercel Cron Jobs
 export async function POST(request: Request) {
@@ -153,10 +157,15 @@ export async function POST(request: Request) {
 
 // Get base URL for API calls
 function getBaseUrl() {
+  // On Vercel, use the deployment URL
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  // Fallback to custom domain or localhost
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  return 'http://localhost:3000';
 }
 
 // Allow GET requests for testing

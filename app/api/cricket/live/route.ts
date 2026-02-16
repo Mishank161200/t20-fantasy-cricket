@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+// Force Node.js runtime for Vercel compatibility
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // This API route fetches live and recent cricket scores from RapidAPI
 // Updated: 2026-02-16 - Automatic scoring system for 2026 T20 World Cup
 export async function GET(request: Request) {

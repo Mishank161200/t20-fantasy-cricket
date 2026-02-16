@@ -5,6 +5,10 @@ import { calculatePlayerPoints } from '@/lib/scoring';
 import { MatchPerformance, Tournament } from '@/lib/types';
 import { WORLD_CUP_PLAYERS } from '@/lib/players';
 
+// Force Node.js runtime for Vercel compatibility
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // This API route fetches detailed match scorecards and calculates player points
 export async function POST(request: Request) {
   try {
