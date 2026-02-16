@@ -6,10 +6,18 @@ This document explains the automated scoring system that fetches match data from
 
 The system automatically:
 1. **Fetches live and completed matches** for the 2026 T20 World Cup
-2. **Retrieves detailed scorecards** for completed matches
+2. **Retrieves detailed scorecards** for completed matches (including historical matches)
 3. **Calculates player points** using the official scoring rules
 4. **Updates tournament standings** in Firestore
-5. **Runs automatically** via Vercel Cron Jobs every 15 minutes
+5. **Runs automatically** via Vercel Cron Jobs once daily (midnight UTC)
+
+## Match Coverage
+
+The app now includes:
+- **Matches 1-29**: Completed matches from Feb 1-15, 2026 (historical)
+- **Match 30 onwards**: Current and future matches
+- **All matches display** in the schedule with results
+- **Automatic scoring** for all completed matches when API data becomes available
 
 ## Architecture
 
