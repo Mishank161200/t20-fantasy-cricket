@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { WORLD_CUP_SCHEDULE } from '@/lib/schedule';
+import { WORLD_CUP_PLAYERS } from '@/lib/players';
 import { formatDate } from '@/lib/utils';
 import { Calendar, MapPin, Clock, Upload, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -16,10 +17,23 @@ export default function SchedulePage() {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [scorecardData, setScorecardData] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed'>('all');
 
   const upcomingMatches = WORLD_CUP_SCHEDULE.filter(m => m.status === 'scheduled');
   const liveMatches = WORLD_CUP_SCHEDULE.filter(m => m.status === 'live');
   const completedMatches = WORLD_CUP_SCHEDULE.filter(m => m.status === 'completed');
+
+  // Filter matches based on active tab
+  const getDisplayMatches = () => {
+    if (activeTab === 'upcoming') {
+      return [...liveMatches, ...upcomingMatches];
+    } else if (activeTab === 'completed') {
+      return completedMatches;
+    }
+    return WORLD_CUP_SCHEDULE; // all
+  };
+
+  const displayMatches = getDisplayMatches();
 
   const isHost = currentTournament?.hostId === user?.id;
 
@@ -29,8 +43,18 @@ export default function SchedulePage() {
     try {
       setUploading(true);
 
-      // Parse the scorecard JSON
-      const performances: MatchPerformance[] = JSON.parse(scorecardData);
+      // Try parsing as tab-separated or comma-separated data first
+      const lines = scorecardData.trim().split('\n');
+      let performances: MatchPerformance[] = [];
+
+      // Check if it's tabular data (CSV/TSV format)
+      if (lines.length > 0 && !scorecardData.trim().startsWith('[')) {
+        // Parse tabular data
+        performances = parseTabularScorecard(lines, selectedMatch.id);
+      } else {
+        // Parse JSON format (backwards compatibility)
+        performances = JSON.parse(scorecardData);
+      }
 
       // Calculate points for each performance
       performances.forEach(perf => {
@@ -77,10 +101,73 @@ export default function SchedulePage() {
       setSelectedMatch(null);
     } catch (error) {
       console.error('Error uploading scorecard:', error);
-      alert('Failed to upload scorecard. Please check the JSON format and try again.');
+      alert('Failed to upload scorecard. Please check the format and try again.');
     } finally {
       setUploading(false);
     }
+  };
+
+  // Parse tabular scorecard data (CSV/TSV from ICC website)
+  const parseTabularScorecard = (lines: string[], matchId: string): MatchPerformance[] => {
+    const performances: MatchPerformance[] = [];
+
+    // Skip header row, process data rows
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      // Split by tab or comma
+      const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+
+      if (parts.length < 3) continue; // Need at least player name and some stats
+
+      const playerName = parts[0].trim();
+
+      // Find player ID by name (case-insensitive matching)
+      const playerInDb = WORLD_CUP_PLAYERS.find(
+        p => p.name.toLowerCase() === playerName.toLowerCase()
+      );
+
+      if (!playerInDb) {
+        console.warn(`Player not found: ${playerName}`);
+        continue;
+      }
+
+      // Parse stats (flexible format)
+      const runs = parseInt(parts[1]) || 0;
+      const balls = parseInt(parts[2]) || 0;
+      const fours = parseInt(parts[3]) || 0;
+      const sixes = parseInt(parts[4]) || 0;
+      const wickets = parseInt(parts[5]) || 0;
+      const economyRate = parseFloat(parts[6]) || 0;
+      const catches = parseInt(parts[7]) || 0;
+      const runOuts = parseInt(parts[8]) || 0;
+      const stumpings = parseInt(parts[9]) || 0;
+
+      performances.push({
+        playerId: playerInDb.id,
+        matchId,
+        inStartingLineup: true, // Assume all listed players are in lineup
+        runs,
+        balls,
+        fours,
+        sixes,
+        isDismissedForDuck: runs === 0 && balls > 0,
+        wickets,
+        dotBalls: 0, // Not typically in simple scorecards
+        bowledOrLbwWickets: 0, // Not typically in simple scorecards
+        oversBowled: economyRate > 0 ? 4 : 0, // Estimate
+        catches,
+        directRunOuts: runOuts,
+        indirectRunOuts: 0,
+        stumpings,
+        maidens: 0,
+        economyRate,
+        points: 0, // Will be calculated
+      });
+    }
+
+    return performances;
   };
 
   const openUploadModal = (match: any) => {
@@ -163,12 +250,54 @@ export default function SchedulePage() {
         <p className="text-gray-600">ICC T20 World Cup 2026 - All times in IST</p>
       </div>
 
-      {/* Live Matches */}
-      {liveMatches.length > 0 && (
+      {/* Tabs */}
+      <div className="mb-8 border-b border-gray-200">
+        <div className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`pb-4 px-2 font-semibold transition-colors relative ${activeTab === 'all'
+              ? 'text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
+          >
+            All Matches
+            {activeTab === 'all' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('upcoming')}
+            className={`pb-4 px-2 font-semibold transition-colors relative ${activeTab === 'upcoming'
+              ? 'text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
+          >
+            Upcoming ({upcomingMatches.length + liveMatches.length})
+            {activeTab === 'upcoming' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`pb-4 px-2 font-semibold transition-colors relative ${activeTab === 'completed'
+              ? 'text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
+          >
+            Completed ({completedMatches.length})
+            {activeTab === 'completed' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Live Matches Banner (always show if there are live matches) */}
+      {liveMatches.length > 0 && activeTab !== 'completed' && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
             <span className="w-3 h-3 bg-red-600 rounded-full mr-3 animate-pulse"></span>
-            Live Matches
+            Live Now
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {liveMatches.map((match) => (
@@ -178,27 +307,26 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {/* Upcoming Matches */}
+      {/* Matches Grid */}
       <div className="mb-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Matches</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcomingMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
-        </div>
-      </div>
+        {activeTab === 'all' && <h2 className="text-2xl font-bold text-gray-900 mb-6">All Matches</h2>}
+        {activeTab === 'upcoming' && <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Matches</h2>}
+        {activeTab === 'completed' && <h2 className="text-2xl font-bold text-gray-900 mb-6">Completed Matches</h2>}
 
-      {/* Completed Matches */}
-      {completedMatches.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Completed Matches</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {completedMatches.map((match) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayMatches
+            .filter(m => activeTab === 'upcoming' ? m.status !== 'live' : true) // Exclude live from upcoming section since we show them separately
+            .map((match) => (
               <MatchCard key={match.id} match={match} />
             ))}
-          </div>
         </div>
-      )}
+
+        {displayMatches.filter(m => activeTab === 'upcoming' ? m.status !== 'live' : true).length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            No matches found
+          </div>
+        )}
+      </div>
 
       {/* Upload Scorecard Modal */}
       {uploadModalOpen && (
@@ -228,50 +356,34 @@ export default function SchedulePage() {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scorecard Data (JSON Format)
+                  Scorecard Data (Copy from ICC Website)
                 </label>
                 <textarea
                   value={scorecardData}
                   onChange={(e) => setScorecardData(e.target.value)}
-                  placeholder={`Paste scorecard JSON here. Format:
-[
-  {
-    "playerId": "ind-1",
-    "matchId": "match-1",
-    "inStartingLineup": true,
-    "runs": 45,
-    "balls": 30,
-    "fours": 4,
-    "sixes": 2,
-    "isDismissedForDuck": false,
-    "wickets": 0,
-    "dotBalls": 0,
-    "bowledOrLbwWickets": 0,
-    "oversBowled": 0,
-    "catches": 1,
-    "directRunOuts": 0,
-    "indirectRunOuts": 0,
-    "stumpings": 0,
-    "maidens": 0,
-    "economyRate": 0,
-    "points": 0
-  }
-]`}
+                  placeholder={`Copy and paste scorecard data from ICC website. Format (tab or comma separated):
+
+Player Name	Runs	Balls	4s	6s	Wickets	Economy	Catches	RunOuts	Stumpings
+Virat Kohli	89	47	11	2	0	0	1	0	0
+Jasprit Bumrah	0	0	0	0	3	6.5	0	0	0
+Hardik Pandya	32	18	4	1	2	8.2	1	0	0
+
+You can copy directly from match scorecards on the ICC website.`}
                   className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm text-gray-900"
                 />
                 <p className="mt-2 text-xs text-gray-500">
-                  Paste the match performance data in JSON format. The points will be calculated automatically.
+                  Copy the scorecard table from the ICC website and paste directly here. Points will be calculated automatically.
                 </p>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-blue-900 mb-2">Required Fields:</h3>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• playerId, matchId, inStartingLineup (true/false)</li>
-                  <li>• Batting: runs, balls, fours, sixes, isDismissedForDuck</li>
-                  <li>• Bowling: wickets, dotBalls, bowledOrLbwWickets, oversBowled, maidens, economyRate</li>
-                  <li>• Fielding: catches, directRunOuts, indirectRunOuts, stumpings</li>
-                  <li>• points field can be 0 (will be auto-calculated)</li>
+                <h3 className="font-semibold text-blue-900 mb-2">How to Upload:</h3>
+                <ul className="text-sm text-blue-800 space-y-2">
+                  <li>• <strong>Easy Way:</strong> Copy scorecard table from ICC website (www.icc-cricket.com) and paste here</li>
+                  <li>• <strong>Format:</strong> Player Name, Runs, Balls, 4s, 6s, Wickets, Economy, Catches, RunOuts, Stumpings</li>
+                  <li>• Use either tabs or commas to separate values</li>
+                  <li>• First line can be headers (will be skipped)</li>
+                  <li>• Player names must match exactly (e.g., "Virat Kohli", "Jasprit Bumrah")</li>
                 </ul>
               </div>
 
