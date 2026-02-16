@@ -16,6 +16,7 @@ export interface Tournament {
   createdAt: Date;
   auctionOrder?: string[]; // Player IDs in auction order
   invitedEmails?: string[]; // Emails invited to auto-join
+  matchPerformances?: { [matchId: string]: MatchPerformance[] }; // Match performances by match ID
 }
 
 export interface TournamentOwner {
