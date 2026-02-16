@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// This API route fetches live cricket scores from RapidAPI and updates match statuses
+// This API route fetches live and recent cricket scores from RapidAPI
 export async function GET(request: Request) {
   try {
     const apiKey = process.env.RAPIDAPI_KEY;
@@ -9,26 +9,52 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
-    // Fetch live matches from Cricket Live Scores API on RapidAPI
-    const response = await fetch('https://cricket-live-scores1.p.rapidapi.com/matches/live', {
-      method: 'GET',
-      headers: {
-        'x-rapidapi-key': apiKey,
-        'x-rapidapi-host': 'cricket-live-scores1.p.rapidapi.com'
-      }
-    });
+    // Fetch both live and recent matches
+    const [liveResponse, recentResponse] = await Promise.all([
+      fetch('https://cricket-live-scores1.p.rapidapi.com/matches/live', {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': 'cricket-live-scores1.p.rapidapi.com'
+        }
+      }),
+      fetch('https://cricket-live-scores1.p.rapidapi.com/matches/recent', {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': 'cricket-live-scores1.p.rapidapi.com'
+        }
+      })
+    ]);
 
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+    if (!liveResponse.ok || !recentResponse.ok) {
+      throw new Error(`API responded with error`);
     }
 
-    const data = await response.json();
+    const [liveData, recentData] = await Promise.all([
+      liveResponse.json(),
+      recentResponse.json()
+    ]);
 
-    // Filter for T20 World Cup matches
-    const worldCupMatches = data.matches?.filter((match: any) =>
-      match.series?.toLowerCase().includes('t20 world cup') ||
-      match.series?.toLowerCase().includes('t20wc')
-    ) || [];
+    // Combine and filter for 2026 T20 World Cup matches
+    const allMatches = [
+      ...(liveData.matches || []),
+      ...(recentData.matches || [])
+    ];
+
+    const worldCupMatches = allMatches.filter((match: any) => {
+      const series = match.series?.toLowerCase() || '';
+      const matchDate = new Date(match.date || match.dateTimeGMT);
+      const year = matchDate.getFullYear();
+
+      return (
+        (series.includes('t20 world cup') ||
+          series.includes('t20wc') ||
+          series.includes('icc men\'s t20 world cup') ||
+          series.includes('icc t20 world cup')) &&
+        year === 2026
+      );
+    });
 
     return NextResponse.json({
       success: true,
