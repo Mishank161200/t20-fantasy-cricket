@@ -2,40 +2,47 @@
 
 ## Overview
 
-The app now supports **AI-powered scorecard analysis** using OpenAI's GPT-4 Vision API. Tournament hosts can simply upload screenshots from the ICC T20 World Cup 2026 website, and the system will automatically extract all player statistics and calculate points.
+The app supports **AI-powered scorecard analysis** using Google's Gemini Vision API. Tournament hosts can upload screenshots of cricket scorecards from any source, and the system will automatically extract all player statistics and calculate fantasy points.
 
 ## Setup
 
-### 1. Get OpenAI API Key
+### 1. Get Google Gemini API Key
 
-1. Go to https://platform.openai.com/api-keys
-2. Sign up or log in
-3. Create a new API key
-4. Copy the key (starts with `sk-proj-...`)
+1. Go to https://aistudio.google.com/apikey
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the key (starts with `AIza...`)
 
 ### 2. Add to Environment Variables
 
 **Local Development (.env.local):**
 ```bash
-OPENAI_API_KEY=sk-proj-your-key-here
+GEMINI_API_KEY=AIzaSyA97ggrTNctukA6qM5Z3WVY_btgKp3KFrI
 ```
 
 **Vercel Production:**
 1. Go to https://vercel.com/dashboard
 2. Select your project → Settings → Environment Variables
 3. Add:
-   - Name: `OPENAI_API_KEY`
-   - Value: `sk-proj-your-key-here`
+   - Name: `GEMINI_API_KEY`
+   - Value: `AIzaSyA97ggrTNctukA6qM5Z3WVY_btgKp3KFrI`
    - Environments: Production, Preview, Development
 4. Redeploy the application
 
 ## How to Upload Scorecards
 
-### Step 1: Go to ICC Website
+### Step 1: Get Scorecard Screenshots
 
-1. Visit https://www.icc-cricket.com/tournaments/mens-t20-world-cup-2026/matches
-2. Click on a completed match
-3. Navigate to the "Scorecard" tab
+You can use scorecards from any cricket website or application:
+- ESPN Cricinfo
+- ICC Official Website
+- Cricbuzz
+- Any other cricket statistics platform
+
+For the ICC T20 World Cup 2026:
+1. Visit your preferred cricket website
+2. Navigate to the match scorecard
+3. Ensure the scorecard shows complete player statistics
 
 ### Step 2: Take Screenshots
 
@@ -61,7 +68,7 @@ Take clear screenshots of the following sections:
 ### Step 3: Upload in App
 
 1. As tournament host, go to **Schedule** page
-2. Find the completed match
+2. Find the completed match (matches with dates in the past)
 3. Click **"Upload Scorecard"** button
 4. Click the upload area or drag & drop screenshots
 5. Upload all 4-6 screenshots (batting/bowling for both innings)
@@ -71,7 +78,7 @@ Take clear screenshots of the following sections:
 ### Step 4: AI Processing
 
 The system will:
-1. Send images to OpenAI GPT-4 Vision
+1. Send images to Google Gemini Vision API
 2. Extract player names and stats from each screenshot
 3. Match players to the 300-player database
 4. Merge stats from multiple screenshots
@@ -133,37 +140,34 @@ After extraction, points are automatically calculated using rules from [SCORING_
 
 ## Cost Considerations
 
-**OpenAI GPT-4 Vision Pricing:**
-- ~$0.01 per image analyzed
-- 6 screenshots per match = ~$0.06 per match
-- 55 matches in tournament = ~$3.30 total
+**Google Gemini Pricing:**
+- Gemini 2.0 Flash has a **FREE tier**
+- 1,500 requests per day (more than enough)
+- 6 screenshots per match = well within limits
+- 55 matches in tournament = FREE
 
-**Free Tier:**
-- OpenAI provides $5 free credit for new users
-- Enough for ~80 matches worth of analysis
-
-**Optimization:**
-- Only upload when absolutely necessary
-- Use the RapidAPI automatic scoring when available (free tier)
-- Manual upload is backup for when API data is incomplete
+**Free Tier Benefits:**
+- No cost for tournament scoring
+- No credit card required
+- Generous rate limits
 
 ## Troubleshooting
 
 ### "API key not configured" error
-**Solution:** Add OPENAI_API_KEY to environment variables and redeploy
+**Solution:** Add GEMINI_API_KEY to environment variables and redeploy
 
 ### "Failed to analyze scorecard" error
 **Possible causes:**
 - Invalid API key
 - Image file too large (>10MB)
 - Network timeout
-- OpenAI API quota exceeded
+- Gemini API quota exceeded
 
 **Solution:**
 - Verify API key is correct
 - Compress images if too large
 - Try again in a few moments
-- Check OpenAI account balance
+- Check that Gemini API is enabled in Google Cloud Console
 
 ### Points seem incorrect
 **Check:**
@@ -186,19 +190,6 @@ After extraction, points are automatically calculated using rules from [SCORING_
 - Verify screenshots show actual scorecard
 - Ensure images are PNG or JPG
 - Try re-taking screenshots
-
-## Alternative: RapidAPI Automatic Scoring
-
-If you prefer not to use manual uploads:
-1. The system automatically fetches scorecards via RapidAPI
-2. Runs daily at midnight UTC
-3. Processes all completed matches automatically
-4. No manual intervention required
-
-**When to use manual uploads:**
-- RapidAPI doesn't have the match data
-- You want immediate score updates
-- API quota is exceeded
 
 ## Developer Notes
 

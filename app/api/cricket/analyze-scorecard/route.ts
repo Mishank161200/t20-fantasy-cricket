@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { calculatePlayerPoints } from '@/lib/scoring';
 import { MatchPerformance } from '@/lib/types';
 import { WORLD_CUP_PLAYERS } from '@/lib/players';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Force Node.js runtime for Vercel compatibility
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// This API route analyzes scorecard screenshots using OpenAI Vision API
+// This API route analyzes scorecard screenshots using Gemini Vision API
 export async function POST(request: Request) {
   try {
     console.log('Received scorecard analysis request');
@@ -22,18 +23,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No images provided' }, { status: 400 });
     }
 
-    const openaiKey = process.env.OPENAI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
     console.log('Environment check:', {
-      hasKey: !!openaiKey,
-      keyPreview: openaiKey ? `${openaiKey.substring(0, 7)}...${openaiKey.slice(-4)}` : 'NOT SET',
+      hasKey: !!geminiKey,
+      keyPreview: geminiKey ? `${geminiKey.substring(0, 7)}...${geminiKey.slice(-4)}` : 'NOT SET',
       nodeEnv: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL
     });
 
-    if (!openaiKey) {
-      console.error('OpenAI API key not configured');
+    if (!geminiKey) {
+      console.error('Gemini API key not configured');
       return NextResponse.json({
-        error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to environment variables.',
+        error: 'Gemini API key not configured. Please add GEMINI_API_KEY to environment variables.',
         debug: {
           environment: process.env.NODE_ENV,
           vercel: !!process.env.VERCEL,
@@ -42,14 +43,14 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    console.log('OpenAI API key found, starting image analysis...');
+    console.log('Gemini API key found, starting image analysis...');
 
     // Analyze all images and extract scorecard data
     const allPerformances: MatchPerformance[] = [];
 
     for (let i = 0; i < images.length; i++) {
       console.log(`Analyzing image ${i + 1} of ${images.length}...`);
-      const performances = await analyzeScoreboardImage(images[i], matchId, openaiKey);
+      const performances = await analyzeScoreboardImage(images[i], matchId, geminiKey);
       console.log(`Image ${i + 1} analysis complete: ${performances.length} players found`);
       allPerformances.push(...performances);
     }
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
   }
 }
 
-// Analyze a single scorecard image using OpenAI Vision
+// Analyze a single scorecard image using Gemini Vision
 async function analyzeScoreboardImage(
   imageBase64: string,
   matchId: string,
@@ -139,47 +140,38 @@ STRICT RULES:
 7. DO NOT add extra players or make up data`;
 
   try {
-    console.log('Calling OpenAI Vision API...');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageBase64.startsWith('data:')
-                    ? imageBase64
-                    : `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.1 // Low temperature for accuracy
-      })
-    });
+    console.log('Calling Gemini Vision API...');
 
-    console.log('OpenAI API response status:', response.status);
+    // Initialize Gemini AI
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error response:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+    // Extract base64 data from data URL if present
+    let base64Data = imageBase64;
+    let mimeType = 'image/jpeg';
+
+    if (imageBase64.startsWith('data:')) {
+      const matches = imageBase64.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        mimeType = matches[1];
+        base64Data = matches[2];
+      }
     }
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    console.log('OpenAI response received, parsing JSON...');
+    // Generate content with image and prompt
+    const result = await model.generateContent([
+      { text: prompt },
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    const content = response.text();
+    console.log('Gemini response received, parsing JSON...');
 
     // Extract JSON from response (handle markdown code blocks)
     let jsonStr = content.trim();
