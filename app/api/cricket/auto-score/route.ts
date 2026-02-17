@@ -8,7 +8,7 @@ import { WORLD_CUP_SCHEDULE } from '@/lib/schedule';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// This API route automatically fetches match statistics using Google Gemini and calculates points
+// This API route automatically fetches match statistics using CricketData.org API and calculates points
 export async function POST(request: Request) {
   try {
     console.log('Received auto-score request');
@@ -33,13 +33,29 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    const cricketApiKey = process.env.CRICKET_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
+
     console.log('Environment check:', {
-      hasKey: !!geminiKey,
-      keyPreview: geminiKey ? `${geminiKey.substring(0, 7)}...${geminiKey.slice(-4)}` : 'NOT SET',
+      hasCricketKey: !!cricketApiKey,
+      hasGeminiKey: !!geminiKey,
+      cricketKeyPreview: cricketApiKey ? `${cricketApiKey.substring(0, 8)}...${cricketApiKey.slice(-4)}` : 'NOT SET',
+      geminiKeyPreview: geminiKey ? `${geminiKey.substring(0, 7)}...${geminiKey.slice(-4)}` : 'NOT SET',
       nodeEnv: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL
     });
+
+    if (!cricketApiKey) {
+      console.error('Cricket API key not configured');
+      return NextResponse.json({
+        error: 'Cricket API key not configured. Please add CRICKET_API_KEY to environment variables.',
+        debug: {
+          environment: process.env.NODE_ENV,
+          vercel: !!process.env.VERCEL,
+          timestamp: new Date().toISOString()
+        }
+      }, { status: 500 });
+    }
 
     if (!geminiKey) {
       console.error('Gemini API key not configured');
@@ -53,10 +69,10 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    console.log('Fetching match statistics using Google Gemini...');
+    console.log('Fetching match statistics using CricketData.org + Gemini...');
 
-    // Fetch match statistics using Gemini
-    const performances = await fetchMatchStatistics(match, geminiKey);
+    // Fetch match statistics using CricketData.org API + Gemini analysis
+    const performances = await fetchMatchStatistics(match, cricketApiKey);
 
     console.log('Extracted performances:', performances.length, 'players');
 
@@ -78,52 +94,119 @@ export async function POST(request: Request) {
   }
 }
 
+// Function to fetch match data from CricketData.org API
+async function fetchCricketDataMatch(match: any, apiKey: string): Promise<any> {
+  try {
+    // CricketData.org API endpoints
+    // First, we need to search for current/recent matches
+    const currentMatchesUrl = `https://api.cricapi.com/v1/currentMatches?apikey=${apiKey}&offset=0`;
+
+    console.log('Searching for match in CricketData.org current matches...');
+    const currentResponse = await fetch(currentMatchesUrl);
+
+    if (!currentResponse.ok) {
+      throw new Error(`CricketData API error: ${currentResponse.status}`);
+    }
+
+    const currentData = await currentResponse.json();
+
+    // Search for our match based on team names
+    let foundMatch = currentData.data?.find((m: any) => {
+      const team1Match = m.teams?.includes(match.team1) || m.name?.includes(match.team1);
+      const team2Match = m.teams?.includes(match.team2) || m.name?.includes(match.team2);
+      return team1Match && team2Match;
+    });
+
+    // If not found in current matches, try match series
+    if (!foundMatch) {
+      console.log('Match not found in current matches, searching series...');
+      const seriesUrl = `https://api.cricapi.com/v1/series?apikey=${apiKey}&offset=0`;
+      const seriesResponse = await fetch(seriesUrl);
+
+      if (seriesResponse.ok) {
+        const seriesData = await seriesResponse.json();
+        // Look for ICC T20 World Cup 2026
+        const worldCupSeries = seriesData.data?.find((s: any) =>
+          s.name?.includes('T20 World Cup') && s.name?.includes('2026')
+        );
+
+        if (worldCupSeries && worldCupSeries.id) {
+          // Get matches from this series
+          const seriesMatchesUrl = `https://api.cricapi.com/v1/series_info?apikey=${apiKey}&id=${worldCupSeries.id}`;
+          const seriesMatchesResponse = await fetch(seriesMatchesUrl);
+
+          if (seriesMatchesResponse.ok) {
+            const seriesMatchesData = await seriesMatchesResponse.json();
+            foundMatch = seriesMatchesData.data?.matchList?.find((m: any) => {
+              const team1Match = m.teams?.includes(match.team1) || m.name?.includes(match.team1);
+              const team2Match = m.teams?.includes(match.team2) || m.name?.includes(match.team2);
+              return team1Match && team2Match;
+            });
+          }
+        }
+      }
+    }
+
+    if (!foundMatch) {
+      console.log('Match not found in CricketData.org');
+      return null;
+    }
+
+    // Get detailed match info including scorecard
+    console.log(`Found match ID: ${foundMatch.id}, fetching detailed scorecard...`);
+    const matchInfoUrl = `https://api.cricapi.com/v1/match_info?apikey=${apiKey}&id=${foundMatch.id}`;
+    const matchInfoResponse = await fetch(matchInfoUrl);
+
+    if (!matchInfoResponse.ok) {
+      throw new Error(`Failed to fetch match details: ${matchInfoResponse.status}`);
+    }
+
+    const matchInfo = await matchInfoResponse.json();
+    console.log('Match details retrieved successfully');
+
+    return matchInfo.data;
+
+  } catch (error: any) {
+    console.error('Error fetching from CricketData.org:', error);
+    return null;
+  }
+}
+
 async function fetchMatchStatistics(match: any, apiKey: string): Promise<MatchPerformance[]> {
   console.log(`Fetching statistics for Match ${match.matchNumber}: ${match.team1} vs ${match.team2}`);
 
-  // Format the date nicely for the query
-  const matchDate = new Date(match.date).toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  // Step 1: Get match data from CricketData.org
+  console.log('Step 1: Fetching match data from CricketData.org...');
 
-  // Create a prompt for Gemini to search for match statistics
-  const prompt = `You are a cricket statistics assistant. Find the detailed player statistics for the following ICC T20 World Cup 2026 match:
+  const matchData = await fetchCricketDataMatch(match, process.env.CRICKET_API_KEY!);
+
+  if (!matchData) {
+    throw new Error('Could not find match data from CricketData.org. The match may not be available yet.');
+  }
+
+  console.log('Match data retrieved from CricketData.org');
+
+  // Step 2: Use Gemini to analyze and extract player statistics
+  console.log('Step 2: Using Gemini to analyze match data...');
+
+  const prompt = `You are a cricket statistics expert. I have match data from CricketData.org API. Please analyze it and extract player statistics in the required format.
 
 Match: ${match.team1} vs ${match.team2}
-Date: ${matchDate}
+Date: ${new Date(match.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
 Venue: ${match.venue}
 
-Please provide the batting and bowling statistics for ALL players who participated in this match. For each player, provide:
+Raw Match Data:
+${JSON.stringify(matchData, null, 2)}
 
-BATTING:
-- Player name
-- Runs scored
-- Balls faced
-- Fours hit
-- Sixes hit
-- Whether they were out or not out
-
-BOWLING:
-- Player name
-- Overs bowled (can be decimal like 3.4)
-- Runs conceded
-- Wickets taken
-- Maidens
-
-FIELDING:
-- Player name
-- Catches taken
-- Run outs (direct hits or assists)
-- Stumpings (for wicket-keepers)
+YOUR TASK:
+Extract batting, bowling, and fielding statistics for EVERY player who participated in this match.
 
 IMPORTANT RULES:
 1. Return ONLY valid JSON - no markdown, no code blocks, no explanations
-2. If you cannot find real match data, return an empty array []
-3. Do NOT make up or hallucinate statistics
-4. Only include players who actually played in this specific match
-5. Use exact player names as they appear in official records
+2. Extract data from the provided match data above
+3. Do NOT make up or hallucinate statistics - only use what's in the data
+4. Include ALL players from both teams
+5. Use exact player names from the data
 
 Return the data in this exact JSON format:
 {
@@ -154,7 +237,12 @@ Return the data in this exact JSON format:
 }`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -167,7 +255,7 @@ Return the data in this exact JSON format:
         }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 4000,
+          maxOutputTokens: 8000,
           topP: 0.95,
           topK: 40
         }
@@ -180,7 +268,7 @@ Return the data in this exact JSON format:
     }
 
     const data = await response.json();
-    console.log('Gemini response received');
+    console.log('Gemini analysis complete');
 
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!content) {
