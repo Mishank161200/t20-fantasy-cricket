@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { WORLD_CUP_SCHEDULE } from '@/lib/schedule';
 import { WORLD_CUP_PLAYERS } from '@/lib/players';
 import { formatDate } from '@/lib/utils';
-import { Calendar, MapPin, Clock, Upload, X } from 'lucide-react';
+import { Calendar, MapPin, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAppStore } from '@/lib/store';
 import { calculatePlayerPoints } from '@/lib/scoring';
@@ -13,12 +13,9 @@ import { MatchPerformance } from '@/lib/types';
 
 export default function SchedulePage() {
   const { currentTournament, user, setCurrentTournament } = useAppStore();
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<any>(null);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed'>('all');
+  const [scoring, setScoring] = useState(false);
+  const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
 
 
 
@@ -40,49 +37,33 @@ export default function SchedulePage() {
 
   const isHost = currentTournament?.hostId === user?.id;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setImageFiles(files);
-
-    // Convert images to base64 for preview and API
-    const promises = files.map(file => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(promises).then(base64Images => {
-      setUploadedImages(base64Images);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUploadScorecard = async () => {
-    if (!currentTournament || !selectedMatch || uploadedImages.length === 0) {
-      alert('Please select images to upload');
+  const handleAutoScore = async (match: any) => {
+    if (!currentTournament) {
+      alert('No tournament selected');
       return;
     }
 
-    try {
-      setUploading(true);
-      console.log('Uploading scorecard for match:', selectedMatch.id);
-      console.log('Number of images:', uploadedImages.length);
+    // Check if match has already been scored
+    if (currentTournament.matchPerformances && currentTournament.matchPerformances[match.id]) {
+      const confirm = window.confirm(
+        `This match has already been scored.\n\nDo you want to re-score it? This will replace the existing scores.`
+      );
+      if (!confirm) return;
+    }
 
-      // Send images to AI analysis endpoint
-      const response = await fetch('/api/cricket/analyze-scorecard', {
+    try {
+      setScoring(true);
+      setScoringMatchId(match.id);
+      console.log('Auto-scoring match:', match.id);
+
+      // Call auto-score API
+      const response = await fetch('/api/cricket/auto-score', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          images: uploadedImages,
-          matchId: selectedMatch.id
+          matchId: match.id
         })
       });
 
@@ -91,7 +72,7 @@ export default function SchedulePage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('API Error:', errorData);
-        throw new Error(errorData.error || errorData.details || 'Failed to analyze scorecard images');
+        throw new Error(errorData.error || errorData.details || 'Failed to fetch match statistics');
       }
 
       const responseData = await response.json();
@@ -100,7 +81,7 @@ export default function SchedulePage() {
       const { performances } = responseData;
 
       if (!performances || performances.length === 0) {
-        throw new Error('No player data extracted from images. Please ensure the screenshots clearly show player statistics.');
+        throw new Error('No player statistics found for this match. The match data may not be available yet.');
       }
 
       console.log('Extracted performances:', performances.length, 'players');
@@ -125,7 +106,7 @@ export default function SchedulePage() {
 
       // Store match performances in tournament data
       const matchPerformances = currentTournament.matchPerformances || {};
-      matchPerformances[selectedMatch.id] = performances;
+      matchPerformances[match.id] = performances;
 
       // Update tournament in Firestore
       await updateTournament(currentTournament.id, {
@@ -139,25 +120,15 @@ export default function SchedulePage() {
         setCurrentTournament(updated);
       }
 
-      alert(`✅ Scorecard analyzed successfully!\n\nPlayers found: ${performances.length}\nPoints calculated and leaderboard updated.`);
-      setUploadModalOpen(false);
-      setUploadedImages([]);
-      setImageFiles([]);
-      setSelectedMatch(null);
+      alert(`✅ Match scored successfully!\n\nPlayers found: ${performances.length}\nPoints calculated and leaderboard updated.`);
     } catch (error) {
-      console.error('Error uploading scorecard:', error);
+      console.error('Error auto-scoring match:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`❌ Failed to analyze scorecard:\n\n${errorMessage}\n\nPlease ensure:\n- Images are clear and readable\n- Screenshots show player statistics\n- OpenAI API key is configured`);
+      alert(`❌ Failed to auto-score match:\n\n${errorMessage}\n\nPlease try again or check if match data is available.`);
     } finally {
-      setUploading(false);
+      setScoring(false);
+      setScoringMatchId(null);
     }
-  };
-
-  const openUploadModal = (match: any) => {
-    setSelectedMatch(match);
-    setUploadedImages([]);
-    setImageFiles([]);
-    setUploadModalOpen(true);
   };
 
 
@@ -218,11 +189,23 @@ export default function SchedulePage() {
 
       {isHost && match.status === 'completed' && (
         <button
-          onClick={() => openUploadModal(match)}
-          className="mt-4 w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center justify-center space-x-2"
+          onClick={() => handleAutoScore(match)}
+          disabled={scoring && scoringMatchId === match.id}
+          className="mt-4 w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Upload className="w-4 h-4" />
-          <span>Upload Scorecard</span>
+          {scoring && scoringMatchId === match.id ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Fetching Stats...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>Auto-Score Match</span>
+            </>
+          )}
         </button>
       )}
     </div>
@@ -234,11 +217,6 @@ export default function SchedulePage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Match Schedule</h1>
           <p className="text-gray-600">ICC T20 World Cup 2026 - All times in IST</p>
-          {lastUpdated && (
-            <p className="text-xs text-gray-500 mt-1">
-              Last updated: {lastUpdated}
-            </p>
-          )}
         </div>
       </div>
 
@@ -319,123 +297,6 @@ export default function SchedulePage() {
           </div>
         )}
       </div>
-
-      {/* Upload Scorecard Modal */}
-      {uploadModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Upload Scorecard</h2>
-                  {selectedMatch && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      Match {selectedMatch.matchNumber}: {selectedMatch.team1} vs {selectedMatch.team2}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    setUploadModalOpen(false);
-                    setSelectedMatch(null);
-                    setUploadedImages([]);
-                    setImageFiles([]);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Scorecard Screenshots
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="scorecard-upload"
-                  />
-                  <label
-                    htmlFor="scorecard-upload"
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                    <span className="text-sm font-medium text-gray-700 mb-1">
-                      Click to upload screenshots
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      PNG, JPG up to 10MB each (multiple files supported)
-                    </span>
-                  </label>
-                </div>
-
-                {uploadedImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    {uploadedImages.map((img, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Screenshot ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
-                        />
-                        <button
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                          Image {index + 1}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-blue-900 mb-2">How to Upload:</h3>
-                <ul className="text-sm text-blue-800 space-y-2">
-                  <li>• Go to the match page on ICC website (www.icc-cricket.com)</li>
-                  <li>• Take screenshots of the scoreboard sections:</li>
-                  <li className="ml-4">→ <strong>Innings 1:</strong> Batting, Bowling, Fall of Wickets</li>
-                  <li className="ml-4">→ <strong>Innings 2:</strong> Batting, Bowling, Fall of Wickets</li>
-                  <li>• Upload all screenshots (up to 6 images total)</li>
-                  <li>• AI will automatically extract player stats and calculate points</li>
-                  <li>• Make sure screenshots are clear and readable</li>
-                </ul>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => {
-                    setUploadModalOpen(false);
-                    setSelectedMatch(null);
-                    setUploadedImages([]);
-                    setImageFiles([]);
-                  }}
-                  className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUploadScorecard}
-                  disabled={uploading || uploadedImages.length === 0}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <Upload className="w-5 h-5" />
-                  <span>{uploading ? 'Analyzing Images...' : `Analyze ${uploadedImages.length} Screenshot${uploadedImages.length !== 1 ? 's' : ''}`}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
