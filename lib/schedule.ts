@@ -1,10 +1,32 @@
 import { Match } from './types';
 
+// Helper function to determine match status based on current date
+function getMatchStatus(matchDate: Date): 'completed' | 'live' | 'scheduled' {
+  const now = new Date();
+  const matchTime = new Date(matchDate);
+
+  // Match is considered completed if it's more than 4 hours in the past
+  const fourHoursAgo = new Date(now.getTime() - (4 * 60 * 60 * 1000));
+
+  // Match is considered live if it started within the last 4 hours
+  const matchStarted = matchTime <= now;
+  const matchRecent = matchTime > fourHoursAgo;
+
+  if (matchStarted && !matchRecent) {
+    return 'completed';
+  } else if (matchStarted && matchRecent) {
+    return 'live';
+  } else {
+    return 'scheduled';
+  }
+}
+
 // ICC T20 World Cup 2026 Schedule - Official tournament schedule
 // Tournament starts: February 7, 2026
 // Current date: February 17, 2026
-export const WORLD_CUP_SCHEDULE: Match[] = [
-  // GROUP STAGE - COMPLETED MATCHES (Feb 7-15, 2026)
+// Note: Match statuses are automatically determined based on current date
+const BASE_SCHEDULE: Omit<Match, 'status'>[] = [
+  // GROUP STAGE - Matches 1-30 (Feb 7-16, 2026)
 
   // February 7, 2026 - Match 1-3
   {
@@ -16,7 +38,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇱',
     date: new Date('2026-02-07T11:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'completed',
   },
   {
     id: 'match-2',
@@ -27,7 +48,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇧🇩',
     date: new Date('2026-02-07T15:00:00+05:30'),
     venue: 'Eden Gardens, Kolkata',
-    status: 'completed',
   },
   {
     id: 'match-3',
@@ -38,7 +58,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇺🇸',
     date: new Date('2026-02-07T19:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'completed',
   },
 
   // February 8, 2026 - Match 4-6
@@ -51,7 +70,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇦🇫',
     date: new Date('2026-02-08T11:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'completed',
   },
   {
     id: 'match-5',
@@ -62,7 +80,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇵',
     date: new Date('2026-02-08T15:00:00+05:30'),
     venue: 'Arun Jaitley Stadium, Delhi',
-    status: 'completed',
   },
   {
     id: 'match-6',
@@ -73,7 +90,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇮🇪',
     date: new Date('2026-02-08T19:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'completed',
   },
 
   // February 9, 2026 - Match 7-9
@@ -86,7 +102,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇮🇹',
     date: new Date('2026-02-09T11:00:00+05:30'),
     venue: 'M. Chinnaswamy Stadium, Bangalore',
-    status: 'completed',
   },
   {
     id: 'match-8',
@@ -97,7 +112,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇴🇲',
     date: new Date('2026-02-09T15:00:00+05:30'),
     venue: 'Sinhalese Sports Club, Colombo',
-    status: 'completed',
   },
   {
     id: 'match-9',
@@ -108,7 +122,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇨🇦',
     date: new Date('2026-02-09T19:00:00+05:30'),
     venue: 'Rajiv Gandhi International Stadium, Hyderabad',
-    status: 'completed',
   },
 
   // February 10, 2026 - Match 10-12
@@ -121,7 +134,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇦',
     date: new Date('2026-02-10T11:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'completed',
   },
   {
     id: 'match-11',
@@ -132,7 +144,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇦🇪',
     date: new Date('2026-02-10T15:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'completed',
   },
   {
     id: 'match-12',
@@ -143,7 +154,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇺🇸',
     date: new Date('2026-02-10T19:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'completed',
   },
 
   // February 11, 2026 - Match 13-15
@@ -156,7 +166,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇦🇫',
     date: new Date('2026-02-11T11:00:00+05:30'),
     venue: 'Arun Jaitley Stadium, Delhi',
-    status: 'completed',
   },
   {
     id: 'match-14',
@@ -167,7 +176,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇮🇪',
     date: new Date('2026-02-11T15:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'completed',
   },
   {
     id: 'match-15',
@@ -178,7 +186,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇰🇳',
     date: new Date('2026-02-11T19:00:00+05:30'),
     venue: 'Eden Gardens, Kolkata',
-    status: 'completed',
   },
 
   // February 12, 2026 - Match 16-18
@@ -191,7 +198,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇴🇲',
     date: new Date('2026-02-12T11:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'completed',
   },
   {
     id: 'match-17',
@@ -202,7 +208,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇮🇹',
     date: new Date('2026-02-12T15:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'completed',
   },
   {
     id: 'match-18',
@@ -213,7 +218,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇦',
     date: new Date('2026-02-12T19:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'completed',
   },
 
   // February 13, 2026 - Match 19-21
@@ -226,7 +230,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇿🇼',
     date: new Date('2026-02-13T11:00:00+05:30'),
     venue: 'Sinhalese Sports Club, Colombo',
-    status: 'completed',
   },
   {
     id: 'match-20',
@@ -237,7 +240,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇦🇪',
     date: new Date('2026-02-13T15:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'completed',
   },
   {
     id: 'match-21',
@@ -248,7 +250,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇱',
     date: new Date('2026-02-13T19:00:00+05:30'),
     venue: 'Arun Jaitley Stadium, Delhi',
-    status: 'completed',
   },
 
   // February 14, 2026 - Match 22-24
@@ -261,7 +262,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇴🇲',
     date: new Date('2026-02-14T11:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'completed',
   },
   {
     id: 'match-23',
@@ -272,7 +272,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇧🇩',
     date: new Date('2026-02-14T15:00:00+05:30'),
     venue: 'M. Chinnaswamy Stadium, Bangalore',
-    status: 'completed',
   },
   {
     id: 'match-24',
@@ -283,7 +282,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇿🇦',
     date: new Date('2026-02-14T19:00:00+05:30'),
     venue: 'Eden Gardens, Kolkata',
-    status: 'completed',
   },
 
   // February 15, 2026 - Match 25-27
@@ -296,7 +294,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇵',
     date: new Date('2026-02-15T11:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'completed',
   },
   {
     id: 'match-26',
@@ -307,7 +304,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇦',
     date: new Date('2026-02-15T15:00:00+05:30'),
     venue: 'Arun Jaitley Stadium, Delhi',
-    status: 'completed',
   },
   {
     id: 'match-27',
@@ -318,7 +314,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇵🇰',
     date: new Date('2026-02-15T19:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'completed',
   },
 
   // GROUP STAGE - ONGOING MATCHES (Feb 16, 2026)
@@ -333,7 +328,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇦🇪',
     date: new Date('2026-02-16T11:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'live',
   },
   {
     id: 'match-29',
@@ -344,7 +338,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇮🇹',
     date: new Date('2026-02-16T15:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'live',
   },
   {
     id: 'match-30',
@@ -355,7 +348,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇱🇰',
     date: new Date('2026-02-16T19:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'live',
   },
 
   // GROUP STAGE - UPCOMING MATCHES (Feb 17-20, 2026)
@@ -370,7 +362,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇨🇦',
     date: new Date('2026-02-17T11:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'scheduled',
   },
   {
     id: 'match-32',
@@ -381,7 +372,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇿🇼',
     date: new Date('2026-02-17T15:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'scheduled',
   },
   {
     id: 'match-33',
@@ -392,7 +382,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇵',
     date: new Date('2026-02-17T19:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'scheduled',
   },
 
   // February 18, 2026 - Match 34-36
@@ -405,7 +394,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇦🇪',
     date: new Date('2026-02-18T11:00:00+05:30'),
     venue: 'Arun Jaitley Stadium, Delhi',
-    status: 'scheduled',
   },
   {
     id: 'match-35',
@@ -416,7 +404,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇦',
     date: new Date('2026-02-18T15:00:00+05:30'),
     venue: 'Sinhalese Sports Club, Colombo',
-    status: 'scheduled',
   },
   {
     id: 'match-36',
@@ -427,7 +414,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇳🇱',
     date: new Date('2026-02-18T19:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'scheduled',
   },
 
   // February 19, 2026 - Match 37-39
@@ -440,7 +426,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇮🇹',
     date: new Date('2026-02-19T11:00:00+05:30'),
     venue: 'Eden Gardens, Kolkata',
-    status: 'scheduled',
   },
   {
     id: 'match-38',
@@ -451,7 +436,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇿🇼',
     date: new Date('2026-02-19T15:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'scheduled',
   },
   {
     id: 'match-39',
@@ -462,7 +446,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇨🇦',
     date: new Date('2026-02-19T19:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'scheduled',
   },
 
   // February 20, 2026 - Match 40
@@ -475,7 +458,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🇴🇲',
     date: new Date('2026-02-20T19:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'scheduled',
   },
 
   // SUPER 8 - Matches 41-52 (Feb 21 - Mar 1, 2026)
@@ -490,7 +472,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-21T19:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'scheduled',
   },
 
   // February 22, 2026 - Match 42-43
@@ -503,7 +484,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-22T15:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'scheduled',
   },
   {
     id: 'match-43',
@@ -514,7 +494,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-22T19:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'scheduled',
   },
 
   // February 23, 2026 - Match 44
@@ -527,7 +506,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-23T19:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'scheduled',
   },
 
   // February 24, 2026 - Match 45
@@ -540,7 +518,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-24T19:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'scheduled',
   },
 
   // February 25, 2026 - Match 46
@@ -553,7 +530,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-25T19:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'scheduled',
   },
 
   // February 26, 2026 - Match 47-48
@@ -566,7 +542,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-26T15:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'scheduled',
   },
   {
     id: 'match-48',
@@ -577,7 +552,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-26T19:00:00+05:30'),
     venue: 'MA Chidambaram Stadium, Chennai',
-    status: 'scheduled',
   },
 
   // February 27, 2026 - Match 49
@@ -590,7 +564,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-27T19:00:00+05:30'),
     venue: 'R.Premadasa Stadium, Colombo',
-    status: 'scheduled',
   },
 
   // February 28, 2026 - Match 50
@@ -603,7 +576,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-02-28T19:00:00+05:30'),
     venue: 'Pallekele International Cricket Stadium, Kandy',
-    status: 'scheduled',
   },
 
   // March 1, 2026 - Match 51-52
@@ -616,7 +588,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-03-01T15:00:00+05:30'),
     venue: 'Arun Jaitley Stadium, Delhi',
-    status: 'scheduled',
   },
   {
     id: 'match-52',
@@ -627,7 +598,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-03-01T19:00:00+05:30'),
     venue: 'Eden Gardens, Kolkata',
-    status: 'scheduled',
   },
 
   // SEMI-FINALS - Matches 53-54 (Mar 4-5, 2026)
@@ -642,7 +612,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-03-04T19:00:00+05:30'),
     venue: 'Eden Gardens, Kolkata',
-    status: 'scheduled',
   },
 
   // March 5, 2026 - Match 54
@@ -655,7 +624,6 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-03-05T19:00:00+05:30'),
     venue: 'Wankhede Stadium, Mumbai',
-    status: 'scheduled',
   },
 
   // FINAL - Match 55 (Mar 8, 2026)
@@ -670,6 +638,14 @@ export const WORLD_CUP_SCHEDULE: Match[] = [
     team2Flag: '🏳️',
     date: new Date('2026-03-08T19:00:00+05:30'),
     venue: 'Narendra Modi Stadium, Ahmedabad',
-    status: 'scheduled',
   },
 ];
+
+// Export schedule with dynamically computed status
+export const WORLD_CUP_SCHEDULE_WITH_STATUS = BASE_SCHEDULE.map(match => ({
+  ...match,
+  status: getMatchStatus(match.date)
+}));
+
+// For backwards compatibility, export as WORLD_CUP_SCHEDULE
+export { WORLD_CUP_SCHEDULE_WITH_STATUS as WORLD_CUP_SCHEDULE };
