@@ -97,72 +97,134 @@ export async function POST(request: Request) {
 // Function to fetch match data from CricketData.org API
 async function fetchCricketDataMatch(match: any, apiKey: string): Promise<any> {
   try {
+    console.log(`\n=== CricketData.org Search ===");
+    console.log(`Looking for: ${ match.team1 } vs ${ match.team2 } `);
+    console.log(`Date: ${ new Date(match.date).toISOString() } `);
+    console.log(`Venue: ${ match.venue } `);
+
     // CricketData.org API endpoints
     // First, we need to search for current/recent matches
     const currentMatchesUrl = `https://api.cricapi.com/v1/currentMatches?apikey=${apiKey}&offset=0`;
 
-    console.log('Searching for match in CricketData.org current matches...');
+    console.log('\n[1/3] Searching current matches...');
     const currentResponse = await fetch(currentMatchesUrl);
 
     if (!currentResponse.ok) {
+      const errorText = await currentResponse.text();
+      console.error('CricketData API error:', currentResponse.status, errorText);
       throw new Error(`CricketData API error: ${currentResponse.status}`);
     }
 
     const currentData = await currentResponse.json();
+    console.log(`Found ${currentData.data?.length || 0} current matches`);
 
-    // Search for our match based on team names
+    if (currentData.data && currentData.data.length > 0) {
+      console.log('Current matches:', currentData.data.map((m: any) => m.name || m.teams?.join(' vs ')).join(', '));
+    }
+
+    // Search for our match based on team names (exact and fuzzy)
     let foundMatch = currentData.data?.find((m: any) => {
-      const team1Match = m.teams?.includes(match.team1) || m.name?.includes(match.team1);
-      const team2Match = m.teams?.includes(match.team2) || m.name?.includes(match.team2);
+      const matchName = (m.name || '').toLowerCase();
+      const team1Lower = match.team1.toLowerCase();
+      const team2Lower = match.team2.toLowerCase();
+
+      // Check if both teams are mentioned in the match
+      const team1Match = m.teams?.some((t: string) => t.toLowerCase().includes(team1Lower)) || matchName.includes(team1Lower);
+      const team2Match = m.teams?.some((t: string) => t.toLowerCase().includes(team2Lower)) || matchName.includes(team2Lower);
+
       return team1Match && team2Match;
     });
 
-    // If not found in current matches, try match series
+    if (foundMatch) {
+      console.log(`✓ Found match in current matches: ${foundMatch.name || foundMatch.teams?.join(' vs ')}`);
+    }
+
+    // If not found in current matches, try searching series
     if (!foundMatch) {
-      console.log('Match not found in current matches, searching series...');
+      console.log('\n[2/3] Searching tournament series...');
       const seriesUrl = `https://api.cricapi.com/v1/series?apikey=${apiKey}&offset=0`;
       const seriesResponse = await fetch(seriesUrl);
 
       if (seriesResponse.ok) {
         const seriesData = await seriesResponse.json();
-        // Look for ICC T20 World Cup 2026
-        const worldCupSeries = seriesData.data?.find((s: any) =>
-          s.name?.includes('T20 World Cup') && s.name?.includes('2026')
-        );
+        console.log(`Found ${seriesData.data?.length || 0} active series`);
+
+        if (seriesData.data && seriesData.data.length > 0) {
+          console.log('Series:', seriesData.data.map((s: any) => s.name).join(', '));
+        }
+
+        // Look for ICC T20 World Cup (any year) or International T20
+        const worldCupSeries = seriesData.data?.find((s: any) => {
+          const seriesName = (s.name || '').toLowerCase();
+          return seriesName.includes('t20 world cup') ||
+            (seriesName.includes('t20') && seriesName.includes('international'));
+        });
 
         if (worldCupSeries && worldCupSeries.id) {
-          // Get matches from this series
+          console.log(`✓ Found relevant series: ${worldCupSeries.name}`);
+          console.log('\n[3/3] Searching series matches...');
+
           const seriesMatchesUrl = `https://api.cricapi.com/v1/series_info?apikey=${apiKey}&id=${worldCupSeries.id}`;
           const seriesMatchesResponse = await fetch(seriesMatchesUrl);
 
           if (seriesMatchesResponse.ok) {
             const seriesMatchesData = await seriesMatchesResponse.json();
-            foundMatch = seriesMatchesData.data?.matchList?.find((m: any) => {
-              const team1Match = m.teams?.includes(match.team1) || m.name?.includes(match.team1);
-              const team2Match = m.teams?.includes(match.team2) || m.name?.includes(match.team2);
+            const matches = seriesMatchesData.data?.matchList || [];
+            console.log(`Found ${matches.length} matches in series`);
+
+            foundMatch = matches.find((m: any) => {
+              const matchName = (m.name || '').toLowerCase();
+              const team1Lower = match.team1.toLowerCase();
+              const team2Lower = match.team2.toLowerCase();
+
+              const team1Match = m.teams?.some((t: string) => t.toLowerCase().includes(team1Lower)) || matchName.includes(team1Lower);
+              const team2Match = m.teams?.some((t: string) => t.toLowerCase().includes(team2Lower)) || matchName.includes(team2Lower);
+
               return team1Match && team2Match;
             });
+
+            if (foundMatch) {
+              console.log(`✓ Found match in series: ${foundMatch.name || foundMatch.teams?.join(' vs ')}`);
+            }
           }
+        } else {
+          console.log('✗ No relevant T20 series found');
         }
       }
     }
 
     if (!foundMatch) {
-      console.log('Match not found in CricketData.org');
+      console.log('\n✗ Match not found in CricketData.org');
+      console.log('\nPossible reasons:');
+      console.log('- Match has not been played yet (future/scheduled match)');
+      console.log('- Match is from a tournament not covered by the API');
+      console.log('- Team names may differ (API uses different naming)');
+      console.log('\nFor testing, try using recent completed international T20 matches.');
       return null;
     }
 
     // Get detailed match info including scorecard
-    console.log(`Found match ID: ${foundMatch.id}, fetching detailed scorecard...`);
+    console.log(`\n[FINAL] Fetching detailed scorecard for match ID: ${foundMatch.id}`);
     const matchInfoUrl = `https://api.cricapi.com/v1/match_info?apikey=${apiKey}&id=${foundMatch.id}`;
     const matchInfoResponse = await fetch(matchInfoUrl);
 
     if (!matchInfoResponse.ok) {
+      const errorText = await matchInfoResponse.text();
+      console.error('Failed to fetch match details:', matchInfoResponse.status, errorText);
       throw new Error(`Failed to fetch match details: ${matchInfoResponse.status}`);
     }
 
     const matchInfo = await matchInfoResponse.json();
-    console.log('Match details retrieved successfully');
+
+    if (!matchInfo.data) {
+      console.error('No match data in response');
+      return null;
+    }
+
+    console.log('✓ Match scorecard retrieved successfully');
+    console.log(`Teams: ${matchInfo.data.teams?.join(' vs ') || 'N/A'}`);
+    console.log(`Status: ${matchInfo.data.status || 'N/A'}`);
+    console.log(`===================================\n`);
 
     return matchInfo.data;
 
@@ -181,7 +243,17 @@ async function fetchMatchStatistics(match: any, apiKey: string): Promise<MatchPe
   const matchData = await fetchCricketDataMatch(match, process.env.CRICKET_API_KEY!);
 
   if (!matchData) {
-    throw new Error('Could not find match data from CricketData.org. The match may not be available yet.');
+    const errorMessage = `Could not find match data from CricketData.org.\n\n` +
+      `Match: ${match.team1} vs ${match.team2}\n` +
+      `Date: ${new Date(match.date).toLocaleDateString()}\n\n` +
+      `This could mean:\n` +
+      `1. The match hasn't been played yet (future/scheduled)\n` +
+      `2. The tournament is not covered by CricketData.org\n` +
+      `3. Team names don't match the API's naming convention\n\n` +
+      `NOTE: This system only works with REAL matches that have been completed and are available in CricketData.org.\n\n` +
+      `For demo purposes, try creating a tournament with recent real T20 international matches instead.`;
+
+    throw new Error(errorMessage);
   }
 
   console.log('Match data retrieved from CricketData.org');
