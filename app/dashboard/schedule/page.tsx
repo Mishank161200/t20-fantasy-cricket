@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { WORLD_CUP_SCHEDULE } from '@/lib/schedule';
 import { WORLD_CUP_PLAYERS } from '@/lib/players';
 import { formatDate } from '@/lib/utils';
-import { Calendar, MapPin, Clock, Upload, X, RefreshCw } from 'lucide-react';
+import { Calendar, MapPin, Clock, Upload, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAppStore } from '@/lib/store';
 import { calculatePlayerPoints } from '@/lib/scoring';
@@ -19,41 +19,8 @@ export default function SchedulePage() {
   const [uploading, setUploading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed'>('all');
-  const [liveScores, setLiveScores] = useState<any[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<string>('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch live scores
-  const fetchLiveScores = async () => {
-    try {
-      setIsRefreshing(true);
-      const response = await fetch('/api/cricket/live');
-      if (response.ok) {
-        const data = await response.json();
-        setLiveScores(data.matches || []);
-        setLastUpdated(new Date().toLocaleTimeString());
-      }
-    } catch (error) {
-      console.error('Error fetching live scores:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
-  // Auto-refresh every 30 seconds if there are live matches
-  useEffect(() => {
-    const hasLiveMatches = WORLD_CUP_SCHEDULE.some(m => m.status === 'live');
-
-    if (hasLiveMatches) {
-      fetchLiveScores(); // Initial fetch
-
-      const interval = setInterval(() => {
-        fetchLiveScores();
-      }, 30000); // 30 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, []);
 
   const upcomingMatches = WORLD_CUP_SCHEDULE.filter(m => m.status === 'scheduled');
   const liveMatches = WORLD_CUP_SCHEDULE.filter(m => m.status === 'live');
@@ -273,16 +240,6 @@ export default function SchedulePage() {
             </p>
           )}
         </div>
-        {liveMatches.length > 0 && (
-          <button
-            onClick={fetchLiveScores}
-            disabled={isRefreshing}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh Scores</span>
-          </button>
-        )}
       </div>
 
       {/* Tabs */}
