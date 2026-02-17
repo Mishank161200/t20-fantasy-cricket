@@ -15,8 +15,9 @@ export default function SchedulePage() {
   const { currentTournament, user, setCurrentTournament } = useAppStore();
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
-  const [scorecardData, setScorecardData] = useState('');
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'completed'>('all');
   const [liveScores, setLiveScores] = useState<any[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string>('');
@@ -72,29 +73,57 @@ export default function SchedulePage() {
 
   const isHost = currentTournament?.hostId === user?.id;
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setImageFiles(files);
+
+    // Convert images to base64 for preview and API
+    const promises = files.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(promises).then(base64Images => {
+      setUploadedImages(base64Images);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleUploadScorecard = async () => {
-    if (!currentTournament || !selectedMatch) return;
+    if (!currentTournament || !selectedMatch || uploadedImages.length === 0) return;
 
     try {
       setUploading(true);
 
-      // Try parsing as tab-separated or comma-separated data first
-      const lines = scorecardData.trim().split('\n');
-      let performances: MatchPerformance[] = [];
+      // Send images to AI analysis endpoint
+      const response = await fetch('/api/cricket/analyze-scorecard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: uploadedImages,
+          matchId: selectedMatch.id
+        })
+      });
 
-      // Check if it's tabular data (CSV/TSV format)
-      if (lines.length > 0 && !scorecardData.trim().startsWith('[')) {
-        // Parse tabular data
-        performances = parseTabularScorecard(lines, selectedMatch.id);
-      } else {
-        // Parse JSON format (backwards compatibility)
-        performances = JSON.parse(scorecardData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze scorecard images');
       }
 
-      // Calculate points for each performance
-      performances.forEach(perf => {
-        perf.points = calculatePlayerPoints(perf);
-      });
+      const { performances } = await response.json();
+
+      if (!performances || performances.length === 0) {
+        throw new Error('No player data extracted from images');
+      }
 
       // Update owner points based on performances
       const updatedOwners = currentTournament.owners.map(owner => {
@@ -102,7 +131,7 @@ export default function SchedulePage() {
 
         // Calculate points from this match for this owner
         owner.players.forEach(playerPurchase => {
-          const performance = performances.find(p => p.playerId === playerPurchase.playerId);
+          const performance = performances.find((p: MatchPerformance) => p.playerId === playerPurchase.playerId);
           if (performance) {
             additionalPoints += performance.points;
           }
@@ -130,9 +159,10 @@ export default function SchedulePage() {
         setCurrentTournament(updated);
       }
 
-      alert('Scorecard uploaded and points calculated successfully!');
+      alert(`Scorecard analyzed successfully! Points calculated for ${performances.length} players.`);
       setUploadModalOpen(false);
-      setScorecardData('');
+      setUploadedImages([]);
+      setImageFiles([]);
       setSelectedMatch(null);
     } catch (error) {
       console.error('Error uploading scorecard:', error);
@@ -142,71 +172,10 @@ export default function SchedulePage() {
     }
   };
 
-  // Parse tabular scorecard data (CSV/TSV from ICC website)
-  const parseTabularScorecard = (lines: string[], matchId: string): MatchPerformance[] => {
-    const performances: MatchPerformance[] = [];
-
-    // Skip header row, process data rows
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-
-      // Split by tab or comma
-      const parts = line.includes('\t') ? line.split('\t') : line.split(',');
-
-      if (parts.length < 3) continue; // Need at least player name and some stats
-
-      const playerName = parts[0].trim();
-
-      // Find player ID by name (case-insensitive matching)
-      const playerInDb = WORLD_CUP_PLAYERS.find(
-        p => p.name.toLowerCase() === playerName.toLowerCase()
-      );
-
-      if (!playerInDb) {
-        console.warn(`Player not found: ${playerName}`);
-        continue;
-      }
-
-      // Parse stats (flexible format)
-      const runs = parseInt(parts[1]) || 0;
-      const balls = parseInt(parts[2]) || 0;
-      const fours = parseInt(parts[3]) || 0;
-      const sixes = parseInt(parts[4]) || 0;
-      const wickets = parseInt(parts[5]) || 0;
-      const economyRate = parseFloat(parts[6]) || 0;
-      const catches = parseInt(parts[7]) || 0;
-      const runOuts = parseInt(parts[8]) || 0;
-      const stumpings = parseInt(parts[9]) || 0;
-
-      performances.push({
-        playerId: playerInDb.id,
-        matchId,
-        inStartingLineup: true, // Assume all listed players are in lineup
-        runs,
-        balls,
-        fours,
-        sixes,
-        isDismissedForDuck: runs === 0 && balls > 0,
-        wickets,
-        dotBalls: 0, // Not typically in simple scorecards
-        bowledOrLbwWickets: 0, // Not typically in simple scorecards
-        oversBowled: economyRate > 0 ? 4 : 0, // Estimate
-        catches,
-        directRunOuts: runOuts,
-        indirectRunOuts: 0,
-        stumpings,
-        maidens: 0,
-        economyRate,
-        points: 0, // Will be calculated
-      });
-    }
-
-    return performances;
-  };
-
   const openUploadModal = (match: any) => {
     setSelectedMatch(match);
+    setUploadedImages([]);
+    setImageFiles([]);
     setUploadModalOpen(true);
   };
 
@@ -398,7 +367,8 @@ export default function SchedulePage() {
                   onClick={() => {
                     setUploadModalOpen(false);
                     setSelectedMatch(null);
-                    setScorecardData('');
+                    setUploadedImages([]);
+                    setImageFiles([]);
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -408,34 +378,65 @@ export default function SchedulePage() {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scorecard Data (Copy from ICC Website)
+                  Upload Scorecard Screenshots
                 </label>
-                <textarea
-                  value={scorecardData}
-                  onChange={(e) => setScorecardData(e.target.value)}
-                  placeholder={`Copy and paste scorecard data from ICC website. Format (tab or comma separated):
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="scorecard-upload"
+                  />
+                  <label
+                    htmlFor="scorecard-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                    <span className="text-sm font-medium text-gray-700 mb-1">
+                      Click to upload screenshots
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      PNG, JPG up to 10MB each (multiple files supported)
+                    </span>
+                  </label>
+                </div>
 
-Player Name	Runs	Balls	4s	6s	Wickets	Economy	Catches	RunOuts	Stumpings
-Virat Kohli	89	47	11	2	0	0	1	0	0
-Jasprit Bumrah	0	0	0	0	3	6.5	0	0	0
-Hardik Pandya	32	18	4	1	2	8.2	1	0	0
-
-You can copy directly from match scorecards on the ICC website.`}
-                  className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono text-sm text-gray-900"
-                />
-                <p className="mt-2 text-xs text-gray-500">
-                  Copy the scorecard table from the ICC website and paste directly here. Points will be calculated automatically.
-                </p>
+                {uploadedImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    {uploadedImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Screenshot ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                          Image {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-blue-900 mb-2">How to Upload:</h3>
                 <ul className="text-sm text-blue-800 space-y-2">
-                  <li>• <strong>Easy Way:</strong> Copy scorecard table from ICC website (www.icc-cricket.com) and paste here</li>
-                  <li>• <strong>Format:</strong> Player Name, Runs, Balls, 4s, 6s, Wickets, Economy, Catches, RunOuts, Stumpings</li>
-                  <li>• Use either tabs or commas to separate values</li>
-                  <li>• First line can be headers (will be skipped)</li>
-                  <li>• Player names must match exactly (e.g., "Virat Kohli", "Jasprit Bumrah")</li>
+                  <li>• Go to the match page on ICC website (www.icc-cricket.com)</li>
+                  <li>• Take screenshots of the scoreboard sections:</li>
+                  <li className="ml-4">→ <strong>Innings 1:</strong> Batting, Bowling, Fall of Wickets</li>
+                  <li className="ml-4">→ <strong>Innings 2:</strong> Batting, Bowling, Fall of Wickets</li>
+                  <li>• Upload all screenshots (up to 6 images total)</li>
+                  <li>• AI will automatically extract player stats and calculate points</li>
+                  <li>• Make sure screenshots are clear and readable</li>
                 </ul>
               </div>
 
@@ -444,7 +445,8 @@ You can copy directly from match scorecards on the ICC website.`}
                   onClick={() => {
                     setUploadModalOpen(false);
                     setSelectedMatch(null);
-                    setScorecardData('');
+                    setUploadedImages([]);
+                    setImageFiles([]);
                   }}
                   className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                 >
@@ -452,11 +454,11 @@ You can copy directly from match scorecards on the ICC website.`}
                 </button>
                 <button
                   onClick={handleUploadScorecard}
-                  disabled={uploading || !scorecardData.trim()}
+                  disabled={uploading || uploadedImages.length === 0}
                   className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   <Upload className="w-5 h-5" />
-                  <span>{uploading ? 'Uploading...' : 'Upload & Calculate Points'}</span>
+                  <span>{uploading ? 'Analyzing Images...' : `Analyze ${uploadedImages.length} Screenshot${uploadedImages.length !== 1 ? 's' : ''}`}</span>
                 </button>
               </div>
             </div>

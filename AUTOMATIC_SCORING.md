@@ -1,15 +1,16 @@
 # Automatic Scoring System
 
-This document explains the automated scoring system that fetches match data from RapidAPI and calculates player points based on the official scoring rules.
+This document explains the automated scoring system that fetches match data from RapidAPI and calculates player points based on the official scoring rules. It also includes AI-powered scorecard image analysis.
 
 ## Overview
 
 The system automatically:
 1. **Fetches live and completed matches** for the 2026 T20 World Cup
 2. **Retrieves detailed scorecards** for completed matches (including historical matches)
-3. **Calculates player points** using the official scoring rules
-4. **Updates tournament standings** in Firestore
-5. **Runs automatically** via Vercel Cron Jobs once daily (midnight UTC)
+3. **Analyzes scorecard screenshots** using AI vision (OpenAI GPT-4 Vision)
+4. **Calculates player points** using the official scoring rules
+5. **Updates tournament standings** in Firestore
+6. **Runs automatically** via Vercel Cron Jobs once daily (midnight UTC)
 
 ## Match Coverage
 
@@ -18,6 +19,37 @@ The app now includes:
 - **Match 30 onwards**: Current and future matches
 - **All matches display** in the schedule with results
 - **Automatic scoring** for all completed matches when API data becomes available
+
+## New Feature: AI Scorecard Analysis
+
+### How It Works
+
+Tournament hosts can upload screenshots from the ICC T20 World Cup 2026 website, and AI will automatically extract player statistics and calculate points.
+
+### Supported Screenshots
+
+For each match, you can upload up to 6 screenshots:
+
+**Innings 1:**
+- Batting scorecard
+- Bowling scorecard
+- Fall of Wickets
+
+**Innings 2:**
+- Batting scorecard
+- Bowling scorecard
+- Fall of Wickets
+
+### AI Extraction
+
+The system uses **OpenAI GPT-4 Vision** to:
+- Recognize player names from screenshots
+- Extract batting stats (runs, balls, 4s, 6s)
+- Extract bowling stats (overs, wickets, economy, maidens)
+- Extract fielding stats (catches, run outs, stumpings)
+- Match players to the 300-player database
+- Merge stats from multiple screenshots
+- Calculate points using official scoring rules
 
 ## Architecture
 
