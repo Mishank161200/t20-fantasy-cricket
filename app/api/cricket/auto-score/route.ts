@@ -8,7 +8,7 @@ import { WORLD_CUP_SCHEDULE } from '@/lib/schedule';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// This API route automatically fetches match statistics using OpenAI and calculates points
+// This API route automatically fetches match statistics using Google Gemini and calculates points
 export async function POST(request: Request) {
   try {
     console.log('Received auto-score request');
@@ -33,18 +33,18 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const openaiKey = process.env.OPENAI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
     console.log('Environment check:', {
-      hasKey: !!openaiKey,
-      keyPreview: openaiKey ? `${openaiKey.substring(0, 7)}...${openaiKey.slice(-4)}` : 'NOT SET',
+      hasKey: !!geminiKey,
+      keyPreview: geminiKey ? `${geminiKey.substring(0, 7)}...${geminiKey.slice(-4)}` : 'NOT SET',
       nodeEnv: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL
     });
 
-    if (!openaiKey) {
-      console.error('OpenAI API key not configured');
+    if (!geminiKey) {
+      console.error('Gemini API key not configured');
       return NextResponse.json({
-        error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to environment variables.',
+        error: 'Gemini API key not configured. Please add GEMINI_API_KEY to environment variables.',
         debug: {
           environment: process.env.NODE_ENV,
           vercel: !!process.env.VERCEL,
@@ -53,10 +53,10 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    console.log('Fetching match statistics using OpenAI...');
+    console.log('Fetching match statistics using Google Gemini...');
 
-    // Fetch match statistics using OpenAI
-    const performances = await fetchMatchStatistics(match, openaiKey);
+    // Fetch match statistics using Gemini
+    const performances = await fetchMatchStatistics(match, geminiKey);
 
     console.log('Extracted performances:', performances.length, 'players');
 
@@ -88,7 +88,7 @@ async function fetchMatchStatistics(match: any, apiKey: string): Promise<MatchPe
     year: 'numeric'
   });
 
-  // Create a prompt for OpenAI to search for match statistics
+  // Create a prompt for Gemini to search for match statistics
   const prompt = `You are a cricket statistics assistant. Find the detailed player statistics for the following ICC T20 World Cup 2026 match:
 
 Match: ${match.team1} vs ${match.team2}
@@ -154,43 +154,38 @@ Return the data in this exact JSON format:
 }`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a cricket statistics expert. You search for and provide accurate cricket match statistics. You MUST return valid JSON only. Never make up statistics - if data is not available, return empty array.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1, // Low temperature for factual accuracy
-        max_tokens: 4000
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1, // Low temperature for factual accuracy
+          maxOutputTokens: 4000
+        }
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI response received');
+    console.log('Gemini response received');
 
-    const content = data.choices[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!content) {
-      throw new Error('No content in OpenAI response');
+      throw new Error('No content in Gemini response');
     }
 
-    console.log('Parsing OpenAI response...');
+    console.log('Parsing Gemini response...');
 
     // Clean up the response - remove markdown code blocks if present
     let cleanedContent = content.trim();
