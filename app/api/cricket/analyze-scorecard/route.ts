@@ -23,10 +23,22 @@ export async function POST(request: Request) {
     }
 
     const openaiKey = process.env.OPENAI_API_KEY;
+    console.log('Environment check:', {
+      hasKey: !!openaiKey,
+      keyPreview: openaiKey ? `${openaiKey.substring(0, 7)}...${openaiKey.slice(-4)}` : 'NOT SET',
+      nodeEnv: process.env.NODE_ENV,
+      isVercel: !!process.env.VERCEL
+    });
+
     if (!openaiKey) {
       console.error('OpenAI API key not configured');
       return NextResponse.json({
-        error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to environment variables.'
+        error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to environment variables.',
+        debug: {
+          environment: process.env.NODE_ENV,
+          vercel: !!process.env.VERCEL,
+          timestamp: new Date().toISOString()
+        }
       }, { status: 500 });
     }
 
