@@ -94,28 +94,81 @@ async function analyzeScoreboardImage(
   matchId: string,
   apiKey: string
 ): Promise<MatchPerformance[]> {
-  const prompt = `You are analyzing a cricket scorecard screenshot from the ICC T20 World Cup 2026.
+  const prompt = `You are analyzing a cricket scorecard screenshot from the ICC T20 World Cup 2026 for a fantasy cricket game.
 
-CRITICAL INSTRUCTIONS - READ CAREFULLY:
-- Extract ONLY what is CLEARLY VISIBLE in the image
-- DO NOT hallucinate, invent, or make up ANY data
-- DO NOT make assumptions about missing information
-- DO NOT include players not shown in this specific screenshot
+=== FANTASY SCORING SYSTEM ===
+This scorecard will be used to calculate fantasy points based on:
+
+BATTING POINTS:
+- Every run = 1 point
+- Every boundary (4) = +4 bonus points
+- Every six (6) = +6 bonus points
+- Strike rate bonuses/penalties (calculated from runs/balls)
+- Duck penalty if dismissed for 0 runs = -2 points
+
+BOWLING POINTS:
+- Every wicket = 30 points
+- Bowled/LBW dismissal = +8 bonus points (IMPORTANT!)
+- Every maiden over = 12 points
+- Economy rate bonuses/penalties (calculated from runs/overs)
+- Dot balls = 1 point each (if visible)
+
+FIELDING POINTS:
+- Catches = 8 points each
+- Stumpings = 12 points
+- Direct run outs = 12 points
+- Indirect run outs = 6 points
+
+=== EXTRACTION INSTRUCTIONS ===
+
+CRITICAL RULES:
+- Extract ONLY what is CLEARLY VISIBLE in THIS image
+- DO NOT hallucinate, invent, or guess ANY data
+- DO NOT include players not shown in THIS specific screenshot
 - If you cannot read a value clearly, use 0
+- Be EXACT with player names (match the scorecard exactly)
 
-Extract ALL player performance data from this image. The image may show:
-- Batting scorecard (runs, balls, 4s, 6s)
-- Bowling scorecard (overs, runs, wickets, economy, maidens)
-- Fall of wickets
+WHAT TO EXTRACT:
 
-Return a JSON array of player performances in this EXACT format:
+1. BATTING SCORECARD (if visible):
+   - Player name (exact match from scorecard)
+   - Runs scored (R column)
+   - Balls faced (B column)
+   - Fours hit (4S column)
+   - Sixes hit (6S column)
+   - Dismissal status: set "isDismissed" to true if player is out, false if "not out"
+   - Look for dismissal method (c = caught, b = bowled, lbw, st = stumped, run out)
+
+2. BOWLING SCORECARD (if visible):
+   - Bowler name (exact match from scorecard)
+   - Overs bowled (O column) - use decimal format (e.g., 4.0, 3.2)
+   - Runs conceded (R column)
+   - Wickets taken (W column)
+   - Maidens bowled (M column)
+   - Economy rate (ECO column)
+   - If you can see individual balls: count dot balls (balls with 0 runs)
+
+3. FALL OF WICKETS (if visible):
+   - Look for dismissal methods to count catches, stumpings, run outs
+   - If you see "c [name]" = that fielder gets a catch
+   - If you see "st [name]" = that wicketkeeper gets a stumping
+   - If you see "run out" = credit to fielder (if name is visible)
+
+4. BOWLED/LBW BONUS (CRITICAL):
+   - In batting scorecard, look at dismissal column
+   - If dismissal method shows "b [bowler]" = bowled
+   - If dismissal method shows "lbw b [bowler]" = leg before wicket
+   - For that bowler, set "bowledOrLbw" = number of such dismissals
+   - This is worth +8 bonus points per dismissal!
+
+RETURN FORMAT - JSON ONLY:
 [
   {
-    "playerName": "Full Player Name",
-    "runs": 0,
-    "balls": 0,
-    "fours": 0,
-    "sixes": 0,
+    "playerName": "Exact Name From Scorecard",
+    "runs": 100,
+    "balls": 52,
+    "fours": 10,
+    "sixes": 5,
     "isDismissed": false,
     "wickets": 0,
     "oversBowled": 0.0,
@@ -131,13 +184,16 @@ Return a JSON array of player performances in this EXACT format:
 ]
 
 STRICT RULES:
-1. Extract EXACT player names as shown in the image
-2. For batting stats: only extract runs, balls faced, 4s, 6s that are visible
-3. For bowling stats: only extract overs, runs conceded, wickets, maidens, economy that are visible
-4. If a stat is NOT visible in THIS image, use 0 (do not guess)
-5. Return ONLY valid JSON, no markdown, no explanation, no comments
+1. Return ONLY valid JSON - no markdown blocks, no explanations, no comments
+2. Extract EXACT player names as shown (case-sensitive)
+3. Use 0 for any stat NOT visible in THIS image
+4. DO NOT combine data from different images
+5. DO NOT infer or calculate missing values
 6. Include ONLY players visible in THIS screenshot
-7. DO NOT add extra players or make up data`;
+7. For batting scorecard: focus on runs, balls, 4s, 6s, dismissal status
+8. For bowling scorecard: focus on overs, runs, wickets, maidens, economy
+9. Match player names to dismissal methods to credit bowled/lbw bonuses
+10. Check fall of wickets carefully for fielding contributions`;
 
   try {
     console.log('Calling Gemini Vision API...');
