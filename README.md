@@ -221,3 +221,4 @@ For issues or questions, please create an issue in the GitHub repository.
 ---
 
 **Built with ❤️ for cricket fans**
+Environment: Vercel production with OpenAI integration
