@@ -97,10 +97,10 @@ export async function POST(request: Request) {
 // Function to fetch match data from CricketData.org API
 async function fetchCricketDataMatch(match: any, apiKey: string): Promise<any> {
   try {
-    console.log(`\n=== CricketData.org Search ===");
-    console.log(`Looking for: ${ match.team1 } vs ${ match.team2 } `);
-    console.log(`Date: ${ new Date(match.date).toISOString() } `);
-    console.log(`Venue: ${ match.venue } `);
+    console.log(`\n=== CricketData.org Search ===`);
+    console.log(`Looking for: ${match.team1} vs ${match.team2}`);
+    console.log(`Date: ${new Date(match.date).toISOString()}`);
+    console.log(`Venue: ${match.venue}`);
 
     // CricketData.org API endpoints
     // First, we need to search for current/recent matches
