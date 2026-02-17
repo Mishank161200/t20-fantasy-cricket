@@ -133,7 +133,7 @@ After extraction, points are automatically calculated using rules from [SCORING_
 - Solution: Retake clearer screenshot and re-upload
 
 ### If upload fails:
-- Check if OPENAI_API_KEY is configured
+- Check if GEMINI_API_KEY is configured
 - Verify images are valid (PNG/JPG, < 10MB)
 - Check browser console for errors
 - Ensure you're the tournament host

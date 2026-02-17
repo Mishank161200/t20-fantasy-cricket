@@ -180,7 +180,7 @@ export default function SchedulePage() {
     } catch (error) {
       console.error('Error uploading scorecard:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`❌ Failed to analyze scorecard:\n\n${errorMessage}\n\nPlease ensure:\n- Images are clear and readable\n- Screenshots show player statistics\n- OpenAI API key is configured`);
+      alert(`❌ Failed to analyze scorecard:\n\n${errorMessage}\n\nPlease ensure:\n- Images are clear and readable\n- Screenshots show player statistics\n- Gemini API key is configured`);
     } finally {
       setUploading(false);
     }

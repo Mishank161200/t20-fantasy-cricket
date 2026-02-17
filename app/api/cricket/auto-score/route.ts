@@ -366,7 +366,7 @@ Return the data in this exact JSON format:
 
     console.log(`Found statistics for ${statsData.players.length} players`);
 
-    // Convert OpenAI stats to MatchPerformance format
+    // Convert Gemini stats to MatchPerformance format
     const performances: MatchPerformance[] = [];
 
     for (const playerStats of statsData.players) {
@@ -391,8 +391,8 @@ Return the data in this exact JSON format:
         sixes: playerStats.batting?.sixes || 0,
         isDismissedForDuck: (playerStats.batting?.runs === 0 && playerStats.batting?.out === true) || false,
         wickets: playerStats.bowling?.wickets || 0,
-        dotBalls: 0, // OpenAI doesn't typically provide this, will be 0
-        bowledOrLbwWickets: 0, // OpenAI doesn't provide this detail
+        dotBalls: 0, // Gemini doesn't typically provide this, will be 0
+        bowledOrLbwWickets: 0, // Gemini doesn't provide this detail
         oversBowled: playerStats.bowling?.overs || 0,
         catches: playerStats.fielding?.catches || 0,
         directRunOuts: playerStats.fielding?.runOuts || 0,

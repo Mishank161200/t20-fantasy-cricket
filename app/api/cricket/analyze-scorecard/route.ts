@@ -282,7 +282,7 @@ STRICT RULES:
     return performances;
 
   } catch (error) {
-    console.error('Error calling OpenAI Vision API:', error);
+    console.error('Error calling Gemini Vision API:', error);
     throw error;
   }
 }

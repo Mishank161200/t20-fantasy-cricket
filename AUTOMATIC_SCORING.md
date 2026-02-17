@@ -7,7 +7,7 @@ This document explains the automated scoring system that fetches match data from
 The system automatically:
 1. **Fetches live and completed matches** for the 2026 T20 World Cup
 2. **Retrieves detailed scorecards** for completed matches (including historical matches)
-3. **Analyzes scorecard screenshots** using AI vision (OpenAI GPT-4 Vision)
+3. **Analyzes scorecard screenshots** using AI vision (Google Gemini Vision)
 4. **Calculates player points** using the official scoring rules
 5. **Updates tournament standings** in Firestore
 6. **Runs automatically** via Vercel Cron Jobs once daily (midnight UTC)
@@ -42,7 +42,7 @@ For each match, you can upload up to 6 screenshots:
 
 ### AI Extraction
 
-The system uses **OpenAI GPT-4 Vision** to:
+The system uses **Google Gemini Vision** to:
 - Recognize player names from screenshots
 - Extract batting stats (runs, balls, 4s, 6s)
 - Extract bowling stats (overs, wickets, economy, maidens)
