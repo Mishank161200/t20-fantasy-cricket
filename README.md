@@ -7,7 +7,7 @@ A minimalistic fantasy cricket application for ICC T20 World Cup 2026, built wit
 - **Tournament Creation & Management**: Host can create tournaments with customizable budgets
 - **Player Auction System**: Random order auction with up to 20 team owners
 - **Team Selection**: Select playing 12 before each match
-- **Live Scoring**: Dream11-style points calculation based on actual match performances
+- **AI-Powered Scoring**: Upload scorecard screenshots and let Gemini Vision AI extract stats
 - **Match Schedule**: Complete T20 World Cup 2026 schedule with dates and venues (IST)
 - **Leaderboard**: Real-time rankings and points tracking
 - **Dashboard**: Overview of team performance and statistics
@@ -53,7 +53,9 @@ A minimalistic fantasy cricket application for ICC T20 World Cup 2026, built wit
      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
      NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+     GEMINI_API_KEY=your_gemini_api_key
      ```
+   - Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
 
 5. **Run the development server**:
    ```bash
@@ -119,7 +121,8 @@ cricket-fantasy-app/
 4. **Manage Matches**:
    - View the match schedule
    - Team owners select their playing 12 before each match
-   - Update live scores during matches
+   - Upload scorecard screenshots after matches complete
+   - AI automatically extracts stats and calculates points
    - View leaderboard after each match
 
 ### As a Team Owner

@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cricket/update-schedule",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
