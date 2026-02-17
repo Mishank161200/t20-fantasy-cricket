@@ -67,6 +67,13 @@ async function analyzeScoreboardImage(
 ): Promise<MatchPerformance[]> {
   const prompt = `You are analyzing a cricket scorecard screenshot from the ICC T20 World Cup 2026.
 
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
+- Extract ONLY what is CLEARLY VISIBLE in the image
+- DO NOT hallucinate, invent, or make up ANY data
+- DO NOT make assumptions about missing information
+- DO NOT include players not shown in this specific screenshot
+- If you cannot read a value clearly, use 0
+
 Extract ALL player performance data from this image. The image may show:
 - Batting scorecard (runs, balls, 4s, 6s)
 - Bowling scorecard (overs, runs, wickets, economy, maidens)
@@ -94,13 +101,14 @@ Return a JSON array of player performances in this EXACT format:
   }
 ]
 
-IMPORTANT:
-1. Extract EXACT player names as shown
-2. For batting stats: runs, balls faced, 4s, 6s
-3. For bowling stats: overs bowled (e.g., 4.0), runs conceded, wickets, maidens, economy rate
-4. If a stat is not visible, use 0
-5. Return ONLY valid JSON, no markdown or explanation
-6. Include ALL players visible in the screenshot`;
+STRICT RULES:
+1. Extract EXACT player names as shown in the image
+2. For batting stats: only extract runs, balls faced, 4s, 6s that are visible
+3. For bowling stats: only extract overs, runs conceded, wickets, maidens, economy that are visible
+4. If a stat is NOT visible in THIS image, use 0 (do not guess)
+5. Return ONLY valid JSON, no markdown, no explanation, no comments
+6. Include ONLY players visible in THIS screenshot
+7. DO NOT add extra players or make up data`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
