@@ -154,7 +154,7 @@ Return the data in this exact JSON format:
 }`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -166,8 +166,10 @@ Return the data in this exact JSON format:
           }]
         }],
         generationConfig: {
-          temperature: 0.1, // Low temperature for factual accuracy
-          maxOutputTokens: 4000
+          temperature: 0.1,
+          maxOutputTokens: 4000,
+          topP: 0.95,
+          topK: 40
         }
       })
     });
