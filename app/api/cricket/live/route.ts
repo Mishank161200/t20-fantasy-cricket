@@ -11,7 +11,12 @@ export async function GET(request: Request) {
     const apiKey = process.env.RAPIDAPI_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+      // Return empty data instead of error when RapidAPI key is not configured
+      // This allows the app to work without live scores
+      return NextResponse.json({ 
+        matches: [],
+        message: 'Live scores unavailable - RapidAPI key not configured'
+      }, { status: 200 });
     }
 
     // Fetch both live and recent matches
