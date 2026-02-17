@@ -10,36 +10,50 @@ export const dynamic = 'force-dynamic';
 // This API route analyzes scorecard screenshots using OpenAI Vision API
 export async function POST(request: Request) {
   try {
+    console.log('Received scorecard analysis request');
     const formData = await request.json();
     const { images, matchId } = formData;
 
+    console.log('Match ID:', matchId);
+    console.log('Number of images received:', images?.length || 0);
+
     if (!images || images.length === 0) {
+      console.error('No images provided in request');
       return NextResponse.json({ error: 'No images provided' }, { status: 400 });
     }
 
     const openaiKey = process.env.OPENAI_API_KEY;
     if (!openaiKey) {
+      console.error('OpenAI API key not configured');
       return NextResponse.json({
         error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to environment variables.'
       }, { status: 500 });
     }
 
+    console.log('OpenAI API key found, starting image analysis...');
+
     // Analyze all images and extract scorecard data
     const allPerformances: MatchPerformance[] = [];
 
-    for (const imageData of images) {
-      const performances = await analyzeScoreboardImage(imageData, matchId, openaiKey);
+    for (let i = 0; i < images.length; i++) {
+      console.log(`Analyzing image ${i + 1} of ${images.length}...`);
+      const performances = await analyzeScoreboardImage(images[i], matchId, openaiKey);
+      console.log(`Image ${i + 1} analysis complete: ${performances.length} players found`);
       allPerformances.push(...performances);
     }
 
     // Merge performances for the same player (in case they appear in multiple images)
+    console.log('Merging performances from multiple images...');
     const mergedPerformances = mergePlayerPerformances(allPerformances);
+    console.log(`Final merged performances: ${mergedPerformances.length} unique players`);
 
     // Calculate points for each performance
+    console.log('Calculating points for each player...');
     mergedPerformances.forEach(perf => {
       perf.points = calculatePlayerPoints(perf);
     });
 
+    console.log('Analysis complete, returning results');
     return NextResponse.json({
       success: true,
       performances: mergedPerformances,
@@ -49,10 +63,12 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Error analyzing scorecard:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error details:', errorMessage);
     return NextResponse.json(
       {
         error: 'Failed to analyze scorecard',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: errorMessage
       },
       { status: 500 }
     );
@@ -111,6 +127,7 @@ STRICT RULES:
 7. DO NOT add extra players or make up data`;
 
   try {
+    console.log('Calling OpenAI Vision API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -140,13 +157,17 @@ STRICT RULES:
       })
     });
 
+    console.log('OpenAI API response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('OpenAI API error response:', errorData);
       throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
     const content = data.choices[0].message.content;
+    console.log('OpenAI response received, parsing JSON...');
 
     // Extract JSON from response (handle markdown code blocks)
     let jsonStr = content.trim();
@@ -156,7 +177,9 @@ STRICT RULES:
       jsonStr = jsonStr.replace(/```\n?/g, '').replace(/```\n?$/g, '');
     }
 
+    console.log('Extracted JSON string length:', jsonStr.length);
     const extractedData = JSON.parse(jsonStr);
+    console.log('Parsed data, extracted players:', extractedData.length);
 
     // Convert to MatchPerformance format
     const performances: MatchPerformance[] = [];
@@ -169,6 +192,8 @@ STRICT RULES:
         console.warn(`Player not found in database: ${playerData.playerName}`);
         continue;
       }
+
+      console.log(`Matched player: ${playerData.playerName} -> ${player.name}`);
 
       performances.push({
         playerId: player.id,
@@ -193,6 +218,7 @@ STRICT RULES:
       });
     }
 
+    console.log(`Converted ${performances.length} player performances from this image`);
     return performances;
 
   } catch (error) {

@@ -97,10 +97,15 @@ export default function SchedulePage() {
   };
 
   const handleUploadScorecard = async () => {
-    if (!currentTournament || !selectedMatch || uploadedImages.length === 0) return;
+    if (!currentTournament || !selectedMatch || uploadedImages.length === 0) {
+      alert('Please select images to upload');
+      return;
+    }
 
     try {
       setUploading(true);
+      console.log('Uploading scorecard for match:', selectedMatch.id);
+      console.log('Number of images:', uploadedImages.length);
 
       // Send images to AI analysis endpoint
       const response = await fetch('/api/cricket/analyze-scorecard', {
@@ -114,16 +119,24 @@ export default function SchedulePage() {
         })
       });
 
+      console.log('API Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze scorecard images');
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || errorData.details || 'Failed to analyze scorecard images');
       }
 
-      const { performances } = await response.json();
+      const responseData = await response.json();
+      console.log('API Response data:', responseData);
+
+      const { performances } = responseData;
 
       if (!performances || performances.length === 0) {
-        throw new Error('No player data extracted from images');
+        throw new Error('No player data extracted from images. Please ensure the screenshots clearly show player statistics.');
       }
+
+      console.log('Extracted performances:', performances.length, 'players');
 
       // Update owner points based on performances
       const updatedOwners = currentTournament.owners.map(owner => {
@@ -159,14 +172,15 @@ export default function SchedulePage() {
         setCurrentTournament(updated);
       }
 
-      alert(`Scorecard analyzed successfully! Points calculated for ${performances.length} players.`);
+      alert(`✅ Scorecard analyzed successfully!\n\nPlayers found: ${performances.length}\nPoints calculated and leaderboard updated.`);
       setUploadModalOpen(false);
       setUploadedImages([]);
       setImageFiles([]);
       setSelectedMatch(null);
     } catch (error) {
       console.error('Error uploading scorecard:', error);
-      alert('Failed to upload scorecard. Please check the format and try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`❌ Failed to analyze scorecard:\n\n${errorMessage}\n\nPlease ensure:\n- Images are clear and readable\n- Screenshots show player statistics\n- OpenAI API key is configured`);
     } finally {
       setUploading(false);
     }
